@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>SlitterFlow Control</title>
+  <meta name="description" content="ระบบบันทึกและจัดการข้อมูล Slitter">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="SlitterFlow หน้าแรก">
+        <span class="brand-mark">SF</span>
+        <span><strong>SlitterFlow</strong><small>CONTROL CENTER</small></span>
+      </a>
+      <span class="system-status"><i></i> SYSTEM READY</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">TH3 · SLITTER RECORD</p>
+        <h1>เลือกโหมดการใช้งาน</h1>
+        <p>Operator บันทึกข้อมูลใหม่ได้โดยไม่ต้องมี Microsoft 365 ส่วนการเรียกดูและแก้ไขข้อมูลต้องเข้าสู่ระบบด้วยบัญชีบริษัท</p>
+      </section>
+
+      <section class="mode-grid" aria-label="โหมดการใช้งาน">
+        <article class="mode-card operator">
+          <div class="mode-number">01</div>
+          <div class="icon" aria-hidden="true">✦</div>
+          <p class="label">SHOP FLOOR</p>
+          <h2>Operator</h2>
+          <p>บันทึก Condition, การตรวจเครื่องจักรและ Dolly, การใช้ใบมีด และการเปลี่ยนใบมีด</p>
+          <ul>
+            <li>ใช้ Employee ID และ PIN</li>
+            <li>เพิ่มข้อมูลใหม่เท่านั้น</li>
+            <li>ไม่สามารถเปิดหรือแก้ไขข้อมูลเดิม</li>
+          </ul>
+          <button class="primary" type="button" data-open="operator-dialog">เข้าสู่หน้า Operator</button>
+        </article>
+
+        <article class="mode-card management">
+          <div class="mode-number">02</div>
+          <div class="icon" aria-hidden="true">▦</div>
+          <p class="label">DATA CENTER</p>
+          <h2>Viewer / Admin</h2>
+          <p>ดูข้อมูลการผลิต กรอง Export CSV และสร้าง Revision ใหม่ตามสิทธิ์ที่ได้รับ</p>
+          <ul>
+            <li>เข้าสู่ระบบด้วย Microsoft 365</li>
+            <li>เริ่มโหลดข้อมูลหลังจากกดกรอง</li>
+            <li>บันทึกประวัติการแก้ไขทุก Revision</li>
+          </ul>
+          <button class="secondary" type="button" id="microsoft-login">เข้าสู่ระบบ Microsoft 365</button>
+        </article>
+      </section>
+
+      <section class="rules">
+        <div><strong>CREATE ONLY</strong><span>Operator เพิ่มข้อมูลใหม่</span></div>
+        <div><strong>REVISION CONTROL</strong><span>ไม่เขียนทับข้อมูลเดิม</span></div>
+        <div><strong>SHAREPOINT</strong><span>ฐานข้อมูลส่วนกลาง</span></div>
+      </section>
+    </main>
+
+    <footer>SlitterFlow Control · Production Record System</footer>
+  </div>
+
+  <dialog id="operator-dialog">
+    <form method="dialog" class="login-panel">
+      <div class="dialog-head">
+        <div><p class="label">OPERATOR ACCESS</p><h2>เข้าสู่ระบบหน้างาน</h2></div>
+        <button class="close" value="cancel" aria-label="ปิด">×</button>
+      </div>
+      <label>Employee ID<input name="employeeId" inputmode="numeric" autocomplete="username" placeholder="กรอกรหัสพนักงาน" required></label>
+      <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••" required></label>
+      <p class="notice">หน้าทดลองยังไม่เชื่อม SharePoint ระบบจะเปิดใช้งานหลังตั้งค่าระบบกลางสำหรับตรวจสอบ PIN</p>
+      <button class="primary" type="button" id="operator-login">เข้าสู่ระบบ</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
