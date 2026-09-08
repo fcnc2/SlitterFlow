@@ -13,8 +13,6 @@ const msalClient = new msal.PublicClientApplication({
   }
 });
 
-const msalReady = msalClient.initialize();
-
 document.querySelector('[data-open="operator-dialog"]').addEventListener('click', () => dialog.showModal());
 
 function notify(message) {
@@ -32,7 +30,6 @@ microsoftButton.addEventListener('click', async () => {
   microsoftButton.textContent = 'กำลังเข้าสู่ระบบ...';
 
   try {
-    await msalReady;
     const response = await msalClient.loginPopup({
       scopes: ['User.Read', 'Sites.ReadWrite.All'],
       prompt: 'select_account'
