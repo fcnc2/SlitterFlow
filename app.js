@@ -11,7 +11,72 @@ function notify(message) {
 }
 
 document.querySelector('#operator-login').addEventListener('click', () => {
-  notify('รอเชื่อมระบบตรวจสอบ PIN และ SharePoint');
+  const employeeId = dialog.querySelector('[name="employeeId"]').value.trim();
+  const pin = dialog.querySelector('[name="pin"]').value.trim();
+  if (!employeeId || !pin) {
+    notify('กรุณากรอก Employee ID และ PIN');
+    return;
+  }
+  document.querySelector('#operator-name').textContent = `ID ${employeeId}`;
+  document.querySelector('#home-view').hidden = true;
+  document.querySelector('#operator-view').hidden = false;
+  dialog.close();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+const stepTabs = [...document.querySelectorAll('.step-tab')];
+const stepPanels = [...document.querySelectorAll('.step-panel')];
+
+function goToStep(step) {
+  stepTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.step === step));
+  stepPanels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === step));
+  window.scrollTo({ top: 80, behavior: 'smooth' });
+}
+
+stepTabs.forEach(tab => tab.addEventListener('click', () => !tab.disabled && goToStep(tab.dataset.step)));
+
+document.querySelector('#complete-inspection').addEventListener('click', () => {
+  const machinePassed = [...document.querySelectorAll('#machine-checks input')].every(item => item.checked);
+  const dollyPassed = ['#dolly-clean', '#dolly-wear', '#dolly-size'].every(id => document.querySelector(id).checked);
+  const cuts = Number(document.querySelector('#dolly-cuts').value);
+  if (!machinePassed || !dollyPassed || !Number.isFinite(cuts) || cuts < 0 || cuts >= 400) {
+    notify('ต้องตรวจครบทุกข้อ และจำนวนครั้งตัด Dolly ต้องน้อยกว่า 400');
+    return;
+  }
+  stepTabs.slice(1).forEach(tab => { tab.disabled = false; tab.classList.remove('locked'); });
+  notify('การตรวจสอบผ่านแล้ว');
+  goToStep('condition');
+});
+
+document.querySelectorAll('.next-step').forEach(button => button.addEventListener('click', () => goToStep(button.dataset.next)));
+
+const knifeGrid = document.querySelector('#knife-grid');
+for (let number = 1; number <= 50; number += 1) {
+  const id = `knife-${number}`;
+  knifeGrid.insertAdjacentHTML('beforeend', `<label for="${id}"><input id="${id}" type="checkbox" value="${String(number).padStart(2, '0')}">${String(number).padStart(2, '0')}</label>`);
+}
+
+document.querySelector('#copy-knives').addEventListener('click', () => notify('ฟังก์ชันคัดลอกจะใช้งานเมื่อเชื่อม SharePoint'));
+
+document.querySelector('#add-replacement').addEventListener('click', () => {
+  const list = document.querySelector('#replacement-list');
+  list.querySelector('.empty-row')?.remove();
+  const row = document.createElement('div');
+  row.className = 'replacement-row';
+  row.innerHTML = '<label>เบอร์ใบมีด<input type="number" min="1" max="50" required></label><label>อายุการใช้งาน<input type="number" min="0" required></label><label>สาเหตุ<input required></label><button type="button">ลบ</button>';
+  row.querySelector('button').addEventListener('click', () => row.remove());
+  list.append(row);
+});
+
+document.querySelector('#record-form').addEventListener('submit', event => {
+  event.preventDefault();
+  notify('ข้อมูลผ่านการตรวจสอบแล้ว รอเชื่อมระบบกลางเพื่อส่งเข้า SharePoint');
+});
+
+document.querySelector('#operator-exit').addEventListener('click', () => {
+  document.querySelector('#operator-view').hidden = true;
+  document.querySelector('#home-view').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 microsoftButton.addEventListener('click', async () => {

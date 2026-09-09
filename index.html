@@ -19,6 +19,7 @@
     </header>
 
     <main>
+      <section id="home-view">
       <section class="intro">
         <p class="eyebrow">TH3 · SLITTER RECORD</p>
         <h1>เลือกโหมดการใช้งาน</h1>
@@ -60,6 +61,85 @@
         <div><strong>REVISION CONTROL</strong><span>ไม่เขียนทับข้อมูลเดิม</span></div>
         <div><strong>SHAREPOINT</strong><span>ฐานข้อมูลส่วนกลาง</span></div>
       </section>
+      </section>
+
+      <section id="operator-view" class="operator-workspace" hidden>
+        <div class="workspace-head">
+          <div><p class="eyebrow">OPERATOR · NEW RECORD ONLY</p><h1>บันทึกงาน Slitter</h1></div>
+          <div class="operator-meta"><strong id="operator-name">Operator</strong><span>ทีม <b id="operator-team">A</b></span><button type="button" id="operator-exit">ออกจากหน้านี้</button></div>
+        </div>
+
+        <div class="step-tabs" role="tablist" aria-label="ขั้นตอนบันทึก">
+          <button class="step-tab active" data-step="inspection" type="button"><b>1</b> ตรวจสอบก่อนเริ่ม</button>
+          <button class="step-tab locked" data-step="condition" type="button" disabled><b>2</b> Condition</button>
+          <button class="step-tab locked" data-step="knife" type="button" disabled><b>3</b> ใบมีด</button>
+          <button class="step-tab locked" data-step="replacement" type="button" disabled><b>4</b> เปลี่ยนใบมีด</button>
+        </div>
+
+        <form id="record-form">
+          <section class="step-panel active" data-panel="inspection">
+            <div class="panel-title"><div><p class="label">MANDATORY CHECK</p><h2>ตรวจสอบเครื่องจักรและ Dolly</h2></div><span class="required-badge">ต้องผ่านก่อนบันทึกงาน</span></div>
+            <div class="record-grid compact">
+              <label>วันที่<input type="date" name="recordDate" required></label>
+              <label>กะ<select name="shift" required><option value="">เลือกกะ</option><option>Day</option><option>Night</option></select></label>
+              <label>ทีม<select name="team" required><option>A</option><option>B</option><option>C</option></select></label>
+            </div>
+            <h3>Machine pre-start inspection</h3>
+            <div class="check-grid" id="machine-checks">
+              <label><input type="checkbox"> Air supply – Top knife</label>
+              <label><input type="checkbox"> Dust suction hose</label>
+              <label><input type="checkbox"> Knife holder (Thick/Thin)</label>
+              <label><input type="checkbox"> Unwinder belt</label>
+              <label><input type="checkbox"> Unload table cart</label>
+              <label><input type="checkbox"> Dust collector</label>
+              <label><input type="checkbox"> Core handling</label>
+              <label><input type="checkbox"> Shaft transport</label>
+              <label><input type="checkbox"> Hydraulic oil</label>
+              <label><input type="checkbox"> Pallet integrity</label>
+            </div>
+            <h3>Dolly / Paper Core Cutter</h3>
+            <div class="record-grid compact dolly-grid">
+              <label class="check-field"><input type="checkbox" id="dolly-clean"> ความสะอาดผ่าน</label>
+              <label class="check-field"><input type="checkbox" id="dolly-wear"> ความสึกผ่าน</label>
+              <label class="check-field"><input type="checkbox" id="dolly-size"> ขนาดถูกต้อง</label>
+              <label>จำนวนครั้งตัด<input type="number" id="dolly-cuts" min="0" max="399" placeholder="ต้องน้อยกว่า 400"></label>
+            </div>
+            <label>หมายเหตุ<textarea name="inspectionRemark" rows="3" placeholder="ระบุเมื่อพบความผิดปกติ"></textarea></label>
+            <button class="primary action-button" type="button" id="complete-inspection">ยืนยันการตรวจสอบและเริ่มบันทึก</button>
+          </section>
+
+          <section class="step-panel" data-panel="condition">
+            <div class="panel-title"><div><p class="label">SLITTER CONDITION</p><h2>ข้อมูล Jumbo และ Condition</h2></div><span class="status-pass">Inspection ผ่านแล้ว</span></div>
+            <div class="record-grid">
+              <label>Product Code<input name="productCode" required></label>
+              <label>Jumbo No.<input name="jumboNo" required></label>
+              <label>Slit No.<input name="slitNo" required></label>
+              <label>Width on Jumbo (mm)<input type="number" name="width"></label>
+              <label>Speed (m/min)<input type="number" name="speed"></label>
+              <label>Ramp Up / Down<input name="ramp"></label>
+              <label>Winder Tension<input type="number" name="tension"></label>
+              <label>Rider Roll Pressure<input type="number" name="pressure"></label>
+              <label>Torque<input type="number" name="torque"></label>
+              <label>Roll Length (m)<input type="number" name="rollLength"></label>
+              <label>Roll Diameter (mm)<input type="number" name="rollDiameter"></label>
+            </div>
+            <button class="secondary action-button next-step" data-next="knife" type="button">ถัดไป: เลือกใบมีด</button>
+          </section>
+
+          <section class="step-panel" data-panel="knife">
+            <div class="panel-title"><div><p class="label">WIDTH CHANGE</p><h2>เลือกใบมีดที่ใช้งาน</h2></div><button class="mini-button" type="button" id="copy-knives">คัดลอกจาก Jumbo ก่อนหน้า</button></div>
+            <div class="knife-grid" id="knife-grid"></div>
+            <button class="secondary action-button next-step" data-next="replacement" type="button">ถัดไป: การเปลี่ยนใบมีด</button>
+          </section>
+
+          <section class="step-panel" data-panel="replacement">
+            <div class="panel-title"><div><p class="label">KNIFE REPLACEMENT</p><h2>บันทึกการเปลี่ยนใบมีด</h2></div><button class="mini-button" type="button" id="add-replacement">+ เพิ่มรายการ</button></div>
+            <div id="replacement-list" class="replacement-list"><p class="empty-row">ไม่มีการเปลี่ยนใบมีดในงานนี้</p></div>
+            <label>หมายเหตุงาน<textarea name="jobRemark" rows="3"></textarea></label>
+            <button class="primary action-button" type="submit">ตรวจสอบและส่งข้อมูลใหม่</button>
+          </section>
+        </form>
+      </section>
     </main>
 
     <footer>SlitterFlow Control · Production Record System</footer>
@@ -73,7 +153,7 @@
       </div>
       <label>Employee ID<input name="employeeId" inputmode="numeric" autocomplete="username" placeholder="กรอกรหัสพนักงาน" required></label>
       <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••" required></label>
-      <p class="notice">หน้าทดลองยังไม่เชื่อม SharePoint ระบบจะเปิดใช้งานหลังตั้งค่าระบบกลางสำหรับตรวจสอบ PIN</p>
+      <p class="notice">โหมดทดสอบหน้า Operator: ระบบยังไม่ตรวจสอบ PIN และยังไม่ส่งข้อมูลเข้า SharePoint</p>
       <button class="primary" type="button" id="operator-login">เข้าสู่ระบบ</button>
     </form>
   </dialog>
