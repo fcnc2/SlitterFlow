@@ -2,17 +2,6 @@ const dialog = document.querySelector('#operator-dialog');
 const toast = document.querySelector('#toast');
 const microsoftButton = document.querySelector('#microsoft-login');
 
-const msalClient = new msal.PublicClientApplication({
-  auth: {
-    clientId: '497a8bdf-06dc-4e47-9b25-e3fa8b3248d5',
-    authority: 'https://login.microsoftonline.com/464ae0fc-7c03-447d-9776-fbfad0c89bcf',
-    redirectUri: 'https://fcnc2.github.io/SlitterFlow/'
-  },
-  cache: {
-    cacheLocation: 'sessionStorage'
-  }
-});
-
 document.querySelector('[data-open="operator-dialog"]').addEventListener('click', () => dialog.showModal());
 
 function notify(message) {
@@ -26,10 +15,25 @@ document.querySelector('#operator-login').addEventListener('click', () => {
 });
 
 microsoftButton.addEventListener('click', async () => {
+  if (typeof msal === 'undefined') {
+    notify('โหลดระบบ Microsoft Login ไม่สำเร็จ กรุณาตรวจสอบเครือข่ายบริษัท');
+    return;
+  }
+
   microsoftButton.disabled = true;
   microsoftButton.textContent = 'กำลังเข้าสู่ระบบ...';
 
   try {
+    const msalClient = new msal.PublicClientApplication({
+      auth: {
+        clientId: '497a8bdf-06dc-4e47-9b25-e3fa8b3248d5',
+        authority: 'https://login.microsoftonline.com/464ae0fc-7c03-447d-9776-fbfad0c89bcf',
+        redirectUri: 'https://fcnc2.github.io/SlitterFlow/'
+      },
+      cache: {
+        cacheLocation: 'sessionStorage'
+      }
+    });
     const response = await msalClient.loginPopup({
       scopes: ['User.Read', 'Sites.ReadWrite.All'],
       prompt: 'select_account'
