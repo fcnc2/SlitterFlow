@@ -23,7 +23,7 @@
       <section class="intro">
         <p class="eyebrow">TH3 · SLITTER RECORD</p>
         <h1>เลือกโหมดการใช้งาน</h1>
-        <p>Operator บันทึกข้อมูลใหม่ได้โดยไม่ต้องมี Microsoft 365 ส่วนการเรียกดูและแก้ไขข้อมูลต้องเข้าสู่ระบบด้วยบัญชีบริษัท</p>
+        <p>Operator ใช้ Employee ID และ PIN เพื่อกรอกข้อมูล และยืนยันบัญชี Microsoft 365 ของบริษัทเมื่อกดบันทึกเข้า SharePoint</p>
       </section>
 
       <section class="mode-grid" aria-label="โหมดการใช้งาน">
@@ -76,13 +76,15 @@
           <button class="step-tab locked" data-step="replacement" type="button" disabled><b>4</b> เปลี่ยนใบมีด</button>
         </div>
 
-        <form id="record-form">
+        <form id="record-form" novalidate>
           <section class="step-panel active" data-panel="inspection">
             <div class="panel-title"><div><p class="label">MANDATORY CHECK</p><h2>ตรวจสอบเครื่องจักรและ Dolly</h2></div><span class="required-badge">ต้องผ่านก่อนบันทึกงาน</span></div>
             <div class="record-grid compact">
+              <label>Area<select name="area" required><option>TH3</option><option>TH4</option></select></label>
+              <label>Machine<select name="machine" required><option>3A</option><option>3B</option></select></label>
               <label>วันที่<input type="date" name="recordDate" required></label>
               <label>กะ<select name="shift" required><option value="">เลือกกะ</option><option>Day</option><option>Night</option></select></label>
-              <label>ทีม<select name="team" required><option>A</option><option>B</option><option>C</option></select></label>
+              <label>ทีม<select name="team" required><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
             </div>
             <h3>Machine pre-start inspection</h3>
             <div class="check-grid" id="machine-checks">
@@ -102,7 +104,7 @@
               <label class="check-field"><input type="checkbox" id="dolly-clean"> ความสะอาดผ่าน</label>
               <label class="check-field"><input type="checkbox" id="dolly-wear"> ความสึกผ่าน</label>
               <label class="check-field"><input type="checkbox" id="dolly-size"> ขนาดถูกต้อง</label>
-              <label>จำนวนครั้งตัด<input type="number" id="dolly-cuts" min="0" max="399" placeholder="ต้องน้อยกว่า 400"></label>
+              <label>จำนวนครั้งตัด<input type="number" id="dolly-cuts" required step="1" min="0" max="399" placeholder="ต้องน้อยกว่า 400"></label>
             </div>
             <label>หมายเหตุ<textarea name="inspectionRemark" rows="3" placeholder="ระบุเมื่อพบความผิดปกติ"></textarea></label>
             <button class="primary action-button" type="button" id="complete-inspection">ยืนยันการตรวจสอบและเริ่มบันทึก</button>
@@ -122,6 +124,7 @@
               <label>Torque<input type="number" name="torque"></label>
               <label>Roll Length (m)<input type="number" name="rollLength"></label>
               <label>Roll Diameter (mm)<input type="number" name="rollDiameter"></label>
+              <label>ตรวจสอบหน้าตัดม้วน<select name="crossSection" required><option value="">เลือกผลตรวจ</option><option value="Normal">ปกติ</option><option value="Abnormal">ผิดปกติ</option></select></label>
             </div>
             <button class="secondary action-button next-step" data-next="knife" type="button">ถัดไป: เลือกใบมีด</button>
           </section>
@@ -136,7 +139,8 @@
             <div class="panel-title"><div><p class="label">KNIFE REPLACEMENT</p><h2>บันทึกการเปลี่ยนใบมีด</h2></div><button class="mini-button" type="button" id="add-replacement">+ เพิ่มรายการ</button></div>
             <div id="replacement-list" class="replacement-list"><p class="empty-row">ไม่มีการเปลี่ยนใบมีดในงานนี้</p></div>
             <label>หมายเหตุงาน<textarea name="jobRemark" rows="3"></textarea></label>
-            <button class="primary action-button" type="submit">ตรวจสอบและส่งข้อมูลใหม่</button>
+            <button class="primary action-button" type="submit" id="save-record">บันทึกเข้า SharePoint ด้วย M365</button>
+            <p id="save-status" role="status" aria-live="polite">ต้องใช้บัญชี M365 ที่มีสิทธิ์บันทึกข้อมูล</p>
           </section>
         </form>
       </section>
@@ -153,13 +157,15 @@
       </div>
       <label>Employee ID<input name="employeeId" inputmode="numeric" autocomplete="username" placeholder="กรอกรหัสพนักงาน" required></label>
       <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••" required></label>
-      <p class="notice">โหมดทดสอบหน้า Operator: ระบบยังไม่ตรวจสอบ PIN และยังไม่ส่งข้อมูลเข้า SharePoint</p>
+      <p class="notice">PIN ยังเป็นโหมดทดสอบและไม่ได้ยืนยันตัวตน การบันทึกต้องใช้ M365 และตั้งค่า SharePoint ให้ครบก่อน</p>
       <button class="primary" type="button" id="operator-login">เข้าสู่ระบบ</button>
     </form>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js" crossorigin="anonymous"></script>
-  <script src="app.js?v=5"></script>
+  <script src="sharepoint-config.js?v=6"></script>
+  <script src="sharepoint.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
