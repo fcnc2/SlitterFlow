@@ -94,10 +94,12 @@ window.SlitterSharePoint = (() => {
         journal.items.push({ list: job.list, id: item.id });
         sessionStorage.setItem(pendingKey, JSON.stringify(journal));
       }
-      const header = jobs[0];
-      await request(`${encodeURIComponent(header.id)}/items/${encodeURIComponent(journal.items[0].id)}/fields`, {
-        method: 'PATCH', body: JSON.stringify({ [config.lists.ProductionRecords.fields.isLatest]: true })
-      });
+      const productionItems = journal.items.filter(item => item.list === 'ProductionRecords');
+      for (const item of productionItems) {
+        await request(`${encodeURIComponent(config.lists.ProductionRecords.id)}/items/${encodeURIComponent(item.id)}/fields`, {
+          method: 'PATCH', body: JSON.stringify({ [config.lists.ProductionRecords.fields.isLatest]: true })
+        });
+      }
       sessionStorage.removeItem(pendingKey);
       return { docNo: journal.docNo, count: journal.items.length };
     } catch (error) {
