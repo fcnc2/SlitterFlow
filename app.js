@@ -1,212 +1,114 @@
-const dialog = document.querySelector('#operator-dialog');
-const toast = document.querySelector('#toast');
-const microsoftButton = document.querySelector('#microsoft-login');
-let operatorId = '';
-let saving = false;
-let saved = false;
+const $ = selector => document.querySelector(selector);
+const $$ = selector => [...document.querySelectorAll(selector)];
+const dialog = $('#operator-dialog');
+const toast = $('#toast');
+const state = { operatorId:'', conditions:[], editing:null, saving:false, saved:false };
+const conditionFields = ['productCode','jumboNo','slitNo','width','speed','ramp','tension','pressure','torque','rollLength','rollDiameter','crossSection'];
 
-document.querySelector('[data-open="operator-dialog"]').addEventListener('click', () => dialog.showModal());
-
-function notify(message) {
-  toast.textContent = message;
-  toast.classList.add('show');
-  window.setTimeout(() => toast.classList.remove('show'), 3600);
+function notify(message){ toast.textContent=message; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3400); }
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+function showView(id){ $$('.view').forEach(view=>view.classList.toggle('active',view.id===id)); window.scrollTo({top:0,behavior:'smooth'}); }
+function documentNo(){ const d=$('[name="recordDate"]').value,s=$('[name="shift"]').value,m=$('[name="machine"]').value; return d&&s&&m?`${d.replaceAll('-','')}${s==='Day'?'D':'N'}-${m}`:''; }
+function refreshDocumentNo(){ $('#doc-number').textContent=documentNo()||'เลือกวันที่และกะ'; }
+function goStep(step){
+  if((state.saving||state.saved)&&step!=='success')return;
+  $$('.step-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===step));
+  const order=['setup','inspection','condition','confirm','success'], target=order.indexOf(step);
+  $$('.step').forEach((button,index)=>{button.classList.toggle('active',index===target);button.classList.toggle('done',index<target);});
+  window.scrollTo({top:70,behavior:'smooth'});
 }
+function enableThrough(step){ const order=['setup','inspection','condition','confirm','success'],end=order.indexOf(step); $$('.step').forEach((b,i)=>b.disabled=i>end); }
 
-document.querySelector('#operator-login').addEventListener('click', () => {
-  const employeeId = dialog.querySelector('[name="employeeId"]').value.trim();
-  const pin = dialog.querySelector('[name="pin"]').value.trim();
-  if (!employeeId || !pin) {
-    notify('กรุณากรอก Employee ID และ PIN');
-    return;
-  }
-  operatorId = employeeId;
-  dialog.querySelector('[name="pin"]').value = '';
-  document.querySelector('#operator-name').textContent = `ID ${employeeId}`;
-  document.querySelector('#home-view').hidden = true;
-  document.querySelector('#operator-view').hidden = false;
-  dialog.close();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+$('#home-button').addEventListener('click',()=>{if(!state.saving)showView('home-view');});
+$('[data-open="operator-dialog"]').addEventListener('click',()=>dialog.showModal());
+$('#operator-login').addEventListener('click',()=>{
+  const employeeId=dialog.querySelector('[name="employeeId"]').value.trim(),pin=dialog.querySelector('[name="pin"]').value.trim();
+  if(!employeeId||!pin)return notify('กรุณากรอก Employee ID และ PIN');
+  state.operatorId=employeeId; dialog.querySelector('[name="pin"]').value='';
+  $('#operator-name').textContent=`ID ${employeeId}`; $('#operator-exit').hidden=false; dialog.close(); showView('operator-view');
+});
+$('#operator-exit').addEventListener('click',()=>{if(!state.saving){$('#operator-exit').hidden=true;showView('home-view');}});
+$$('.step').forEach(button=>button.addEventListener('click',()=>!button.disabled&&goStep(button.dataset.step)));
+$$('.back-step').forEach(button=>button.addEventListener('click',()=>goStep(button.dataset.back)));
+
+$$('[name="recordDate"],[name="shift"],[name="machine"]').forEach(control=>control.addEventListener('change',refreshDocumentNo));
+$('[name="area"]').addEventListener('change',event=>{const values=event.target.value==='TH3'?['3A','3B']:['4A','4B']; $('[name="machine"]').innerHTML=values.map(v=>`<option>${v}</option>`).join('');refreshDocumentNo();});
+$('[name="team"]').addEventListener('change',event=>{$('#operator-team').textContent=`ทีม ${event.target.value}`;});
+$$('[name="recordType"]').forEach(radio=>radio.addEventListener('change',()=>{$$('.type-option').forEach(label=>label.classList.toggle('selected',label.querySelector('input').checked));}));
+$('#start-inspection').addEventListener('click',()=>{
+  for(const input of $$('[data-panel="setup"] [required]'))if(!input.checkValidity()){input.reportValidity();return;}
+  if($('[name="recordType"]:checked').value!=='Slitter')return notify('Auto Pack Record จะเชื่อมในขั้นตอนถัดไป');
+  enableThrough('inspection');goStep('inspection');
+});
+$('#complete-inspection').addEventListener('click',()=>{
+  const checks=$$('#machine-checks input,.dolly-grid input[type="checkbox"]'),raw=$('#dolly-cuts').value,cuts=raw===''?NaN:Number(raw);
+  if(!checks.every(c=>c.checked)||!Number.isInteger(cuts)||cuts<0||cuts>=400)return notify('ต้องตรวจครบทุกข้อ และจำนวนครั้งตัดต้องน้อยกว่า 400');
+  enableThrough('condition');goStep('condition');
 });
 
-const stepTabs = [...document.querySelectorAll('.step-tab')];
-const stepPanels = [...document.querySelectorAll('.step-panel')];
+const knifeGrid=$('#knife-grid');
+for(let number=1;number<=50;number++){const v=String(number).padStart(2,'0');knifeGrid.insertAdjacentHTML('beforeend',`<label><input type="checkbox" value="${v}"><span>${v}</span></label>`);}
+$('#select-all-knives').addEventListener('click',()=>$$('#knife-grid input').forEach(i=>i.checked=true));
+$('#clear-knives').addEventListener('click',()=>$$('#knife-grid input').forEach(i=>i.checked=false));
+$('#copy-condition').addEventListener('change',event=>{if(event.target.value==='')return;const source=state.conditions[Number(event.target.value)];if(!source)return;$$('#knife-grid input').forEach(i=>i.checked=source.knives.includes(i.value));notify(`คัดลอกใบมีดจาก Condition ${Number(event.target.value)+1} แล้ว`);});
 
-function goToStep(step) {
-  if (saving || saved) return;
-  stepTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.step === step));
-  stepPanels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === step));
-  window.scrollTo({ top: 80, behavior: 'smooth' });
+function addReplacement(value={}){
+  $('#replacement-list .empty-row')?.remove();const row=document.createElement('div');row.className='replacement-row';
+  row.innerHTML='<label>เบอร์ใบมีด<input class="replacement-knife" type="number" min="1" max="50" required></label><label>อายุการใช้งาน (ชม.)<input class="replacement-life" type="number" min="0" required></label><label>สาเหตุ<input class="replacement-reason" required></label><button type="button">ลบ</button>';
+  row.querySelector('.replacement-knife').value=value.knifeNo||'';row.querySelector('.replacement-life').value=value.lifeHours??'';row.querySelector('.replacement-reason').value=value.reason||'';
+  row.querySelector('button').addEventListener('click',()=>{row.remove();if(!$('.replacement-row'))$('#replacement-list').innerHTML='<p class="empty-row">ไม่มีการเปลี่ยนใบมีดใน Condition นี้</p>';});$('#replacement-list').append(row);
 }
-
-stepTabs.forEach(tab => tab.addEventListener('click', () => !tab.disabled && goToStep(tab.dataset.step)));
-
-document.querySelector('#complete-inspection').addEventListener('click', () => {
-  const machinePassed = [...document.querySelectorAll('#machine-checks input')].every(item => item.checked);
-  const dollyPassed = ['#dolly-clean', '#dolly-wear', '#dolly-size'].every(id => document.querySelector(id).checked);
-  const rawCuts = document.querySelector('#dolly-cuts').value;
-  const cuts = rawCuts === '' ? NaN : Number(rawCuts);
-  if (!machinePassed || !dollyPassed || !Number.isInteger(cuts) || cuts < 0 || cuts >= 400) {
-    notify('ต้องตรวจครบทุกข้อ และจำนวนครั้งตัด Dolly ต้องน้อยกว่า 400');
-    return;
-  }
-  stepTabs.slice(1).forEach(tab => { tab.disabled = false; tab.classList.remove('locked'); });
-  notify('การตรวจสอบผ่านแล้ว');
-  goToStep('condition');
-});
-
-document.querySelectorAll('.next-step').forEach(button => button.addEventListener('click', () => goToStep(button.dataset.next)));
-
-const knifeGrid = document.querySelector('#knife-grid');
-for (let number = 1; number <= 50; number += 1) {
-  const id = `knife-${number}`;
-  knifeGrid.insertAdjacentHTML('beforeend', `<label for="${id}"><input id="${id}" type="checkbox" value="${String(number).padStart(2, '0')}">${String(number).padStart(2, '0')}</label>`);
+$('#add-replacement').addEventListener('click',()=>addReplacement());
+function clearEditor(){
+  conditionFields.forEach(name=>{const field=$(`[name="${name}"]`);field.value='';});$$('#knife-grid input').forEach(i=>i.checked=false);$('#replacement-list').innerHTML='<p class="empty-row">ไม่มีการเปลี่ยนใบมีดใน Condition นี้</p>';state.editing=null;$('#condition-label').textContent=`CONDITION ${state.conditions.length+1}`;$('#cancel-condition').hidden=true;$('#condition-editor').hidden=false;
 }
-
-document.querySelector('#copy-knives').addEventListener('click', () => notify('ฟังก์ชันคัดลอกจะใช้งานเมื่อเชื่อม SharePoint'));
-
-document.querySelector('#add-replacement').addEventListener('click', () => {
-  const list = document.querySelector('#replacement-list');
-  list.querySelector('.empty-row')?.remove();
-  const row = document.createElement('div');
-  row.className = 'replacement-row';
-  row.innerHTML = '<label>เบอร์ใบมีด<input type="number" min="1" max="50" required></label><label>อายุการใช้งาน<input type="number" min="0" required></label><label>สาเหตุ<input required></label><button type="button">ลบ</button>';
-  row.querySelector('button').addEventListener('click', () => row.remove());
-  list.append(row);
-});
-
-function collectRecord() {
-  const form = document.querySelector('#record-form');
-  for (const input of form.querySelectorAll('input, select, textarea')) {
-    if (!input.checkValidity()) {
-      goToStep(input.closest('.step-panel').dataset.panel);
-      input.reportValidity();
-      throw new Error('กรุณากรอกข้อมูลให้ครบและถูกต้อง');
-    }
-  }
-  const checks = [...document.querySelectorAll('#machine-checks input, .dolly-grid input[type="checkbox"]')];
-  if (!checks.every(input => input.checked)) {
-    goToStep('inspection');
-    throw new Error('ต้องผ่านการตรวจสอบครบทุกข้อก่อนบันทึก');
-  }
-  const knives = [...knifeGrid.querySelectorAll('input:checked')].map(input => input.value);
-  if (!knives.length) { goToStep('knife'); throw new Error('กรุณาเลือกใบมีดที่ใช้งานอย่างน้อย 1 ใบ'); }
-  const data = Object.fromEntries(new FormData(form));
-  if (!operatorId) throw new Error('กรุณาเข้าสู่หน้า Operator');
-  if (!({ TH3: ['3A', '3B'], TH4: ['4A', '4B'] })[data.area]?.includes(data.machine)) throw new Error('Area และ Machine ไม่ตรงกัน');
-  const docNo = `${data.recordDate.replaceAll('-', '')}${data.shift === 'Day' ? 'D' : 'N'}-${data.machine}`;
-  const now = new Date().toISOString();
-  const revision = 1;
-  const conditionRound = 1;
-  const common = { docNo, revision, area: data.area, operatorId };
-  const numberValue = key => data[key] === '' ? null : Number(data[key]);
-  const productCode = data.productCode.trim().toUpperCase();
-  const jumboNo = data.jumboNo.trim();
-  const slitNo = data.slitNo.trim();
-  const inspectionKey = `${docNo}-R${revision}`;
-  const checkResults = checks.map((input, index) => {
-    const category = input.closest('.dolly-grid') ? 'Dolly' : 'Machine';
-    const itemNo = category === 'Dolly' ? index - document.querySelectorAll('#machine-checks input').length + 1 : index + 1;
-    return {
-      ...common,
-      resultKey: `${inspectionKey}-${category === 'Dolly' ? 'D' : 'M'}${String(itemNo).padStart(2, '0')}`,
-      inspectionKey,
-      category,
-      itemCode: `${category === 'Dolly' ? 'D' : 'M'}${String(itemNo).padStart(2, '0')}`,
-      checklistName: input.parentElement.textContent.trim(),
-      inputType: 'PassFail',
-      resultText: 'Pass',
-      resultStatus: 'Pass',
-      checkedAt: now,
-      remark: data.inspectionRemark.trim()
-    };
-  });
-  checkResults.push({
-    ...common,
-    resultKey: `${inspectionKey}-D04`, inspectionKey, category: 'Dolly', itemCode: 'D04',
-    checklistName: 'จำนวนครั้งตัด Paper Core Cutter', inputType: 'Number',
-    resultNumber: Number(document.querySelector('#dolly-cuts').value), resultStatus: 'Pass',
-    checkedAt: now, remark: data.inspectionRemark.trim()
-  });
-  const parameters = [
-    ['WIDTH', 'Width on Jumbo', 'Number', numberValue('width'), null, 'mm'],
-    ['SPEED', 'Speed', 'Number', numberValue('speed'), null, 'm/min'],
-    ['RAMP', 'Ramp Up / Down', 'Text', null, data.ramp.trim(), ''],
-    ['TENSION', 'Winder Tension', 'Number', numberValue('tension'), null, ''],
-    ['PRESSURE', 'Rider Roll Pressure', 'Number', numberValue('pressure'), null, ''],
-    ['TORQUE', 'Torque', 'Number', numberValue('torque'), null, ''],
-    ['ROLL_LENGTH', 'Roll Length', 'Number', numberValue('rollLength'), null, 'm'],
-    ['ROLL_DIAMETER', 'Roll Diameter', 'Number', numberValue('rollDiameter'), null, 'mm'],
-    ['CROSS_SECTION', 'ตรวจสอบหน้าตัดม้วน', 'Choice', null, data.crossSection, '']
-  ];
-  const conditionRows = parameters.filter(([, , , valueNumber, valueText]) => valueNumber !== null || valueText).map(([code, name, dataType, valueNumber, valueText, unit], index) => {
-    const recordKey = `${docNo}-C${conditionRound}-${String(index + 1).padStart(2, '0')}`;
-    return { ...common, title: recordKey, recordKey, productCode, jumboNo, conditionRound: String(conditionRound), parameterCode: code, parameterName: name, dataType, valueNumber, valueText, unit, recordedAt: now };
-  });
-  const replacements = [...document.querySelectorAll('.replacement-row')].map(row => {
-    const inputs = row.querySelectorAll('input');
-    if (!inputs[2].value.trim()) throw new Error('กรุณาระบุสาเหตุเปลี่ยนใบมีด');
-    const knifeNo = Number(inputs[0].value);
-    const recordKey = `${docNo}-K${String(knifeNo).padStart(2, '0')}-${Date.now()}`;
-    return { ...common, title: recordKey, recordKey, productCode, jumboNo, knifeNo, lifeHours: Number(inputs[1].value), lifeUnit: 'Hours', reason: inputs[2].value.trim(), replacedAt: now };
-  });
-  return [
-    { list: 'ProductionRecords', rows: [{ docNo, revision, isLatest: false, recordDate: data.recordDate, shift: data.shift, team: data.team, operatorId, productCode, jumboNo, conditionRound, slitNo, width: numberValue('width'), speed: numberValue('speed'), ramp: data.ramp.trim(), tension: data.tension, pressure: data.pressure, torque: data.torque, rollLength: numberValue('rollLength'), rollDiameter: numberValue('rollDiameter'), remark: data.jobRemark.trim() }] },
-    { list: 'MachineInspections', rows: [{ ...common, inspectionKey, inspectedAt: now, shift: data.shift, team: data.team, overallResult: 'Pass', remark: data.inspectionRemark.trim() }] },
-    { list: 'InspectionResults', rows: checkResults },
-    { list: 'ConditionValues', rows: conditionRows },
-    { list: 'KnifeSelectionRecords', rows: knives.map(value => { const knifeNo = Number(value); const recordKey = `${docNo}-K${String(knifeNo).padStart(2, '0')}`; return { ...common, title: recordKey, recordKey, productCode, jumboNo, widthPattern: data.width, knifeNo, recordedAt: now }; }) },
-    { list: 'KnifeReplacements', rows: replacements }
-  ];
+function readCondition(){
+  for(const field of $$('#condition-editor input,#condition-editor select'))if(!field.checkValidity()){field.reportValidity();throw new Error('กรุณากรอกข้อมูล Condition ให้ครบและถูกต้อง');}
+  const knives=$$('#knife-grid input:checked').map(i=>i.value);if(!knives.length)throw new Error('กรุณาเลือกใบมีดอย่างน้อย 1 ใบ');
+  const data={};conditionFields.forEach(name=>data[name]=$(`[name="${name}"]`).value.trim());data.productCode=data.productCode.toUpperCase();data.knives=knives;
+  data.replacements=$$('.replacement-row').map(row=>{const knifeField=row.querySelector('.replacement-knife'),lifeField=row.querySelector('.replacement-life'),reasonField=row.querySelector('.replacement-reason'),knifeNo=Number(knifeField.value),life=Number(lifeField.value),reason=reasonField.value.trim();if(!knifeField.checkValidity()||!lifeField.checkValidity()||!reasonField.checkValidity()||!reason)throw new Error('กรุณากรอกข้อมูลการเปลี่ยนใบมีดให้ครบ');return{knifeNo,lifeHours:life,reason};});return data;
 }
+function renderConditions(){
+  $('#condition-cards').innerHTML=state.conditions.map((c,i)=>`<article class="condition-card"><span class="card-index">CONDITION ${i+1}</span><h3>${escapeHtml(c.productCode)}</h3><p>Jumbo ${escapeHtml(c.jumboNo)} · Slit ${escapeHtml(c.slitNo)}</p><p>${c.knives.length} ใบมีด</p><div class="card-tools"><button type="button" data-edit="${i}">แก้ไข</button><button class="delete" type="button" data-delete="${i}">ลบ</button></div></article>`).join('');
+  $$('[data-edit]').forEach(b=>b.addEventListener('click',()=>editCondition(Number(b.dataset.edit))));
+  $$('[data-delete]').forEach(b=>b.addEventListener('click',()=>{state.conditions.splice(Number(b.dataset.delete),1);renderConditions();clearEditor();}));
+  $('#copy-condition').innerHTML='<option value="">คัดลอกจาก Condition</option>'+state.conditions.map((_,i)=>`<option value="${i}">Condition ${i+1}</option>`).join('');
+  $('#add-condition').hidden=!state.conditions.length||state.conditions.length>=6;$('#review-record').disabled=!state.conditions.length;
+}
+function editCondition(index){const c=state.conditions[index];state.editing=index;conditionFields.forEach(name=>$(`[name="${name}"]`).value=c[name]??'');$$('#knife-grid input').forEach(i=>i.checked=c.knives.includes(i.value));$('#replacement-list').innerHTML='<p class="empty-row">ไม่มีการเปลี่ยนใบมีดใน Condition นี้</p>';c.replacements.forEach(addReplacement);$('#condition-label').textContent=`แก้ไข CONDITION ${index+1}`;$('#cancel-condition').hidden=false;$('#condition-editor').hidden=false;}
+$('#cancel-condition').addEventListener('click',clearEditor);
+$('#save-condition').addEventListener('click',()=>{try{const condition=readCondition();if(state.editing===null)state.conditions.push(condition);else state.conditions[state.editing]=condition;renderConditions();$('#condition-editor').hidden=true;notify('บันทึก Condition แล้ว');}catch(error){notify(error.message);}});
+$('#add-condition').addEventListener('click',()=>{if(state.conditions.length<6)clearEditor();});
 
-document.querySelector('#record-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  if (saving || saved) return;
-  const status = document.querySelector('#save-status');
-  const button = document.querySelector('#save-record');
-  let controls = [];
-  try {
-    const groups = collectRecord();
-    saving = true;
-    controls = [...document.querySelectorAll('#record-form input, #record-form select, #record-form textarea, #record-form button, #operator-exit')].map(element => [element, element.disabled]);
-    controls.forEach(([element]) => { element.disabled = true; });
-    status.textContent = 'กำลังยืนยันบัญชี M365 และส่งข้อมูล กรุณารอสักครู่';
-    const result = await SlitterSharePoint.save(groups);
-    saved = true;
-    status.textContent = `บันทึกสำเร็จ: ${result.docNo} ส่งครบ ${result.count} รายการ`;
-    button.textContent = 'บันทึกสำเร็จแล้ว';
-    document.querySelector('#operator-exit').disabled = false;
-  } catch (error) {
-    status.textContent = error.message;
-    notify(error.message);
-  } finally {
-    saving = false;
-    if (!saved) controls.forEach(([element, disabled]) => { element.disabled = disabled; });
-  }
-});
+function buildConfirmation(){
+  const checks=$$('#machine-checks input,.dolly-grid input[type="checkbox"]');
+  $('#confirm-summary').innerHTML=[['Document No.',documentNo()],['Area / Machine',`${$('[name="area"]').value} / ${$('[name="machine"]').value}`],['Operator',state.operatorId],['ทีม / กะ',`${$('[name="team"]').value} / ${$('[name="shift"]').value}`],['ผ่าน',checks.filter(c=>c.checked).length+1],['ไม่ผ่าน','0'],['Condition',state.conditions.length],['สถานะ','พร้อมบันทึก']].map(([k,v])=>`<div class="summary-item"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join('');
+  $('#confirm-conditions').innerHTML=state.conditions.map((c,i)=>`<div class="confirm-row"><b>#${i+1}</b><span>${escapeHtml(c.productCode)}</span><span>Jumbo ${escapeHtml(c.jumboNo)}</span><span>${c.knives.length} ใบมีด</span></div>`).join('');
+}
+$('#review-record').addEventListener('click',()=>{buildConfirmation();enableThrough('confirm');goStep('confirm');});
 
-document.querySelector('#operator-exit').addEventListener('click', () => {
-  if (saving) return;
-  if (saved) { window.location.reload(); return; }
-  document.querySelector('#operator-view').hidden = true;
-  document.querySelector('#home-view').hidden = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+function collectGroups(){
+  const setup=Object.fromEntries(new FormData($('#record-form'))),docNo=documentNo(),now=new Date().toISOString(),revision=1,common={docNo,revision,area:setup.area,operatorId:state.operatorId},inspectionKey=`${docNo}-R${revision}`;
+  const checks=$$('#machine-checks input,.dolly-grid input[type="checkbox"]'),machineCount=$$('#machine-checks input').length;
+  const results=checks.map((input,index)=>{const category=input.closest('.dolly-grid')?'Dolly':'Machine',no=category==='Dolly'?index-machineCount+1:index+1,itemCode=`${category==='Dolly'?'D':'M'}${String(no).padStart(2,'0')}`;return{...common,resultKey:`${inspectionKey}-${itemCode}`,inspectionKey,category,itemCode,checklistName:input.parentElement.textContent.trim(),inputType:'PassFail',resultText:'Pass',resultStatus:'Pass',checkedAt:now,remark:setup.inspectionRemark.trim()};});
+  results.push({...common,resultKey:`${inspectionKey}-D04`,inspectionKey,category:'Dolly',itemCode:'D04',checklistName:'จำนวนครั้งตัด Paper Core Cutter',inputType:'Number',resultNumber:Number($('#dolly-cuts').value),resultStatus:'Pass',checkedAt:now,remark:setup.inspectionRemark.trim()});
+  const production=[],conditionValues=[],knifeRows=[],replacementRows=[];
+  state.conditions.forEach((c,index)=>{
+    const round=index+1,num=key=>c[key]===''?null:Number(c[key]);
+    production.push({docNo,revision,isLatest:false,recordDate:setup.recordDate,shift:setup.shift,team:setup.team,operatorId:state.operatorId,productCode:c.productCode,jumboNo:c.jumboNo,conditionRound:round,slitNo:c.slitNo,width:num('width'),speed:num('speed'),ramp:c.ramp,tension:c.tension,pressure:c.pressure,torque:c.torque,rollLength:num('rollLength'),rollDiameter:num('rollDiameter')});
+    const params=[['WIDTH','Width on Jumbo','Number',num('width'),null,'mm'],['SPEED','Speed','Number',num('speed'),null,'m/min'],['RAMP','Ramp Up / Down','Text',null,c.ramp,''],['TENSION','Winder Tension','Number',num('tension'),null,''],['PRESSURE','Rider Roll Pressure','Number',num('pressure'),null,''],['TORQUE','Torque','Number',num('torque'),null,''],['ROLL_LENGTH','Roll Length','Number',num('rollLength'),null,'m'],['ROLL_DIAMETER','Roll Diameter','Number',num('rollDiameter'),null,'mm'],['CROSS_SECTION','ตรวจสอบหน้าตัดม้วน','Choice',null,c.crossSection,'']];
+    params.filter(([, , ,n,t])=>n!==null||t).forEach(([code,name,dataType,valueNumber,valueText,unit],p)=>{const recordKey=`${docNo}-C${round}-${String(p+1).padStart(2,'0')}`;conditionValues.push({...common,title:recordKey,recordKey,productCode:c.productCode,jumboNo:c.jumboNo,conditionRound:String(round),parameterCode:code,parameterName:name,dataType,valueNumber,valueText,unit,recordedAt:now});});
+    c.knives.forEach(value=>{const knifeNo=Number(value),recordKey=`${docNo}-C${round}-K${value}`;knifeRows.push({...common,title:recordKey,recordKey,productCode:c.productCode,jumboNo:c.jumboNo,widthPattern:c.width,knifeNo,recordedAt:now});});
+    c.replacements.forEach((r,i)=>{const recordKey=`${docNo}-C${round}-R${i+1}`;replacementRows.push({...common,title:recordKey,recordKey,productCode:c.productCode,jumboNo:c.jumboNo,knifeNo:r.knifeNo,lifeHours:r.lifeHours,lifeUnit:'Hours',reason:r.reason,replacedAt:now});});
+  });
+  return[{list:'ProductionRecords',rows:production},{list:'MachineInspections',rows:[{...common,inspectionKey,inspectedAt:now,shift:setup.shift,team:setup.team,overallResult:'Pass',remark:setup.inspectionRemark.trim()}]},{list:'InspectionResults',rows:results},{list:'ConditionValues',rows:conditionValues},{list:'KnifeSelectionRecords',rows:knifeRows},{list:'KnifeReplacements',rows:replacementRows}];
+}
+$('#record-form').addEventListener('submit',async event=>{event.preventDefault();if(state.saving||state.saved)return;const controls=$$('#record-form input,#record-form select,#record-form textarea,#record-form button,#operator-exit');try{state.saving=true;controls.forEach(e=>e.disabled=true);$('#save-status').textContent='กำลังยืนยัน M365 และส่งข้อมูล กรุณารอสักครู่';const result=await SlitterSharePoint.save(collectGroups());state.saved=true;$('#success-message').textContent=`Document No. ${result.docNo} · บันทึกครบ ${result.count} รายการ`;enableThrough('success');$('#new-record').disabled=false;goStep('success');}catch(error){$('#save-status').textContent=error.message;notify(error.message);}finally{state.saving=false;if(!state.saved)controls.forEach(e=>e.disabled=false);}});
+$('#new-record').addEventListener('click',()=>window.location.reload());
 
-microsoftButton.addEventListener('click', async () => {
-  microsoftButton.disabled = true;
-  try {
-    const response = await SlitterSharePoint.token();
-    microsoftButton.textContent = response.account.name || response.account.username;
-    notify(`เข้าสู่ระบบแล้ว: ${response.account.username}`);
-  } catch (error) {
-    notify(error.message);
-  } finally { microsoftButton.disabled = false; }
-});
-
-const areaSelect = document.querySelector('[name="area"]');
-areaSelect.addEventListener('change', () => {
-  document.querySelector('[name="machine"]').innerHTML = (areaSelect.value === 'TH3' ? ['3A', '3B'] : ['4A', '4B']).map(value => `<option>${value}</option>`).join('');
-});
-document.querySelector('[name="team"]').addEventListener('change', event => { document.querySelector('#operator-team').textContent = event.target.value; });
+$('#microsoft-login').addEventListener('click',async()=>{const button=$('#microsoft-login');button.disabled=true;try{const response=await SlitterSharePoint.token();button.textContent=response.account.name||response.account.username;showView('management-view');$('#operator-exit').hidden=false;}catch(error){notify(error.message);}finally{button.disabled=false;}});
+$('#admin-trigger').addEventListener('click',()=>{$('#admin-panel').hidden=!$('#admin-panel').hidden;});
+$('#review-record').disabled=true;
+$('#apply-filter').addEventListener('click',()=>{$('#confirm-summary');$('.empty-data').innerHTML='<b>พร้อมเชื่อมข้อมูลการผลิต</b><span>ส่วนอ่านข้อมูล SharePoint จะทำในขั้นตอนถัดไป</span>';$('#save-record');$('#management-view').querySelector('.secondary').disabled=false;});
+$('#management-view .filter-card .ghost').addEventListener('click',()=>{$$('#management-view input,#management-view select').forEach(e=>e.value='');$('.empty-data').innerHTML='<b>ยังไม่มีข้อมูล</b><span>กรอกตัวกรองแล้วกด “กรองข้อมูล”</span>';});
+refreshDocumentNo();renderConditions();
