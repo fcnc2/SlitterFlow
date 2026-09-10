@@ -95,24 +95,68 @@ function collectRecord() {
   if (!operatorId) throw new Error('กรุณาเข้าสู่หน้า Operator');
   if (!({ TH3: ['3A', '3B'], TH4: ['4A', '4B'] })[data.area]?.includes(data.machine)) throw new Error('Area และ Machine ไม่ตรงกัน');
   const docNo = `${data.recordDate.replaceAll('-', '')}${data.shift === 'Day' ? 'D' : 'N'}-${data.machine}`;
-  const common = { docNo };
-  const condition = { ...common };
-  for (const key of ['productCode', 'jumboNo', 'slitNo', 'ramp']) condition[key] = data[key].trim();
-  condition.productCode = condition.productCode.toUpperCase();
-  for (const key of ['width', 'speed', 'tension', 'pressure', 'torque', 'rollLength', 'rollDiameter']) {
-    condition[key] = data[key] === '' ? null : Number(data[key]);
-  }
+  const now = new Date().toISOString();
+  const revision = 1;
+  const conditionRound = 1;
+  const common = { docNo, revision, area: data.area, operatorId };
+  const numberValue = key => data[key] === '' ? null : Number(data[key]);
+  const productCode = data.productCode.trim().toUpperCase();
+  const jumboNo = data.jumboNo.trim();
+  const slitNo = data.slitNo.trim();
+  const inspectionKey = `${docNo}-R${revision}`;
+  const checkResults = checks.map((input, index) => {
+    const category = input.closest('.dolly-grid') ? 'Dolly' : 'Machine';
+    const itemNo = category === 'Dolly' ? index - document.querySelectorAll('#machine-checks input').length + 1 : index + 1;
+    return {
+      ...common,
+      resultKey: `${inspectionKey}-${category === 'Dolly' ? 'D' : 'M'}${String(itemNo).padStart(2, '0')}`,
+      inspectionKey,
+      category,
+      itemCode: `${category === 'Dolly' ? 'D' : 'M'}${String(itemNo).padStart(2, '0')}`,
+      checklistName: input.parentElement.textContent.trim(),
+      inputType: 'PassFail',
+      resultText: 'Pass',
+      resultStatus: 'Pass',
+      checkedAt: now,
+      remark: data.inspectionRemark.trim()
+    };
+  });
+  checkResults.push({
+    ...common,
+    resultKey: `${inspectionKey}-D04`, inspectionKey, category: 'Dolly', itemCode: 'D04',
+    checklistName: 'จำนวนครั้งตัด Paper Core Cutter', inputType: 'Number',
+    resultNumber: Number(document.querySelector('#dolly-cuts').value), resultStatus: 'Pass',
+    checkedAt: now, remark: data.inspectionRemark.trim()
+  });
+  const parameters = [
+    ['WIDTH', 'Width on Jumbo', 'Number', numberValue('width'), null, 'mm'],
+    ['SPEED', 'Speed', 'Number', numberValue('speed'), null, 'm/min'],
+    ['RAMP', 'Ramp Up / Down', 'Text', null, data.ramp.trim(), ''],
+    ['TENSION', 'Winder Tension', 'Number', numberValue('tension'), null, ''],
+    ['PRESSURE', 'Rider Roll Pressure', 'Number', numberValue('pressure'), null, ''],
+    ['TORQUE', 'Torque', 'Number', numberValue('torque'), null, ''],
+    ['ROLL_LENGTH', 'Roll Length', 'Number', numberValue('rollLength'), null, 'm'],
+    ['ROLL_DIAMETER', 'Roll Diameter', 'Number', numberValue('rollDiameter'), null, 'mm'],
+    ['CROSS_SECTION', 'ตรวจสอบหน้าตัดม้วน', 'Choice', null, data.crossSection, '']
+  ];
+  const conditionRows = parameters.filter(([, , , valueNumber, valueText]) => valueNumber !== null || valueText).map(([code, name, dataType, valueNumber, valueText, unit], index) => {
+    const recordKey = `${docNo}-C${conditionRound}-${String(index + 1).padStart(2, '0')}`;
+    return { ...common, title: recordKey, recordKey, productCode, jumboNo, conditionRound: String(conditionRound), parameterCode: code, parameterName: name, dataType, valueNumber, valueText, unit, recordedAt: now };
+  });
   const replacements = [...document.querySelectorAll('.replacement-row')].map(row => {
     const inputs = row.querySelectorAll('input');
     if (!inputs[2].value.trim()) throw new Error('กรุณาระบุสาเหตุเปลี่ยนใบมีด');
-    return { ...common, knifeNo: inputs[0].value.padStart(2, '0'), lifeHours: Number(inputs[1].value), reason: inputs[2].value.trim() };
+    const knifeNo = Number(inputs[0].value);
+    const recordKey = `${docNo}-K${String(knifeNo).padStart(2, '0')}-${Date.now()}`;
+    return { ...common, title: recordKey, recordKey, productCode, jumboNo, knifeNo, lifeHours: Number(inputs[1].value), lifeUnit: 'Hours', reason: inputs[2].value.trim(), replacedAt: now };
   });
   return [
-    { list: 'SlitterRecord', rows: [{ ...common, area: data.area, machine: data.machine, dayNight: data.shift, team: data.team, operator: operatorId, recordDate: data.recordDate, createdTime: new Date().toISOString(), remark: data.jobRemark, status: 'Pending' }] },
-    { list: 'PreStartCheck', rows: checks.map(input => ({ ...common, checklistName: input.parentElement.textContent.trim(), passed: input.checked, dollyCuts: Number(document.querySelector('#dolly-cuts').value), remark: data.inspectionRemark })) },
-    { list: 'SlitCondition', rows: [condition] },
-    { list: 'KnifeUsage', rows: knives.map(knifeNo => ({ ...common, slitNo: data.slitNo, knifeNo })) },
-    { list: 'KnifeReplacement', rows: replacements }
+    { list: 'ProductionRecords', rows: [{ docNo, revision, isLatest: false, recordDate: data.recordDate, shift: data.shift, team: data.team, operatorId, productCode, jumboNo, conditionRound, slitNo, width: numberValue('width'), speed: numberValue('speed'), ramp: data.ramp.trim(), tension: data.tension, pressure: data.pressure, torque: data.torque, rollLength: numberValue('rollLength'), rollDiameter: numberValue('rollDiameter'), remark: data.jobRemark.trim() }] },
+    { list: 'MachineInspections', rows: [{ ...common, inspectionKey, inspectedAt: now, shift: data.shift, team: data.team, overallResult: 'Pass', remark: data.inspectionRemark.trim() }] },
+    { list: 'InspectionResults', rows: checkResults },
+    { list: 'ConditionValues', rows: conditionRows },
+    { list: 'KnifeSelectionRecords', rows: knives.map(value => { const knifeNo = Number(value); const recordKey = `${docNo}-K${String(knifeNo).padStart(2, '0')}`; return { ...common, title: recordKey, recordKey, productCode, jumboNo, widthPattern: data.width, knifeNo, recordedAt: now }; }) },
+    { list: 'KnifeReplacements', rows: replacements }
   ];
 }
 

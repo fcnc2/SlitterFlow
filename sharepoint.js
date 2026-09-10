@@ -48,6 +48,7 @@ window.SlitterSharePoint = (() => {
       if (!target?.id) throw new Error(`ยังไม่ตั้งค่า List: ${group.list}`);
       const fields = {};
       for (const [key, value] of Object.entries(row)) {
+        if (value === null || value === undefined || value === '') continue;
         const column = target.fields[key];
         if (!column) throw new Error(`ยังไม่จับคู่คอลัมน์ ${group.list}.${key}`);
         fields[column] = value;
@@ -95,7 +96,7 @@ window.SlitterSharePoint = (() => {
       }
       const header = jobs[0];
       await request(`${encodeURIComponent(header.id)}/items/${encodeURIComponent(journal.items[0].id)}/fields`, {
-        method: 'PATCH', body: JSON.stringify({ [config.lists.SlitterRecord.fields.status]: 'Complete' })
+        method: 'PATCH', body: JSON.stringify({ [config.lists.ProductionRecords.fields.isLatest]: true })
       });
       sessionStorage.removeItem(pendingKey);
       return { docNo: journal.docNo, count: journal.items.length };
