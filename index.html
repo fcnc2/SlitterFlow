@@ -3,169 +3,142 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07111f">
-  <title>SlitterFlow Control</title>
-  <meta name="description" content="ระบบบันทึกและจัดการข้อมูล Slitter">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <meta name="theme-color" content="#f5f9ff">
+  <title>SlitterFlow</title>
+  <meta name="description" content="ระบบบันทึกงาน Slitter TH3 และ TH4">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
-  <div class="shell">
+  <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="SlitterFlow หน้าแรก">
-        <span class="brand-mark">SF</span>
-        <span><strong>SlitterFlow</strong><small>CONTROL CENTER</small></span>
-      </a>
-      <span class="system-status"><i></i> SYSTEM READY</span>
+      <button class="brand" id="home-button" type="button" aria-label="กลับหน้าแรก">
+        <span class="brand-icon">SF</span>
+        <span><strong>SlitterFlow</strong><small>Production Record</small></span>
+      </button>
+      <div class="top-actions"><span class="online-dot">พร้อมใช้งาน</span><button id="operator-exit" class="ghost small" type="button" hidden>ออกจากหน้านี้</button></div>
     </header>
 
     <main>
-      <section id="home-view">
-      <section class="intro">
-        <p class="eyebrow">TH3 · SLITTER RECORD</p>
-        <h1>เลือกโหมดการใช้งาน</h1>
-        <p>Operator ใช้ Employee ID และ PIN เพื่อกรอกข้อมูล และยืนยันบัญชี Microsoft 365 ของบริษัทเมื่อกดบันทึกเข้า SharePoint</p>
-      </section>
-
-      <section class="mode-grid" aria-label="โหมดการใช้งาน">
-        <article class="mode-card operator">
-          <div class="mode-number">01</div>
-          <div class="icon" aria-hidden="true">✦</div>
-          <p class="label">SHOP FLOOR</p>
-          <h2>Operator</h2>
-          <p>บันทึก Condition, การตรวจเครื่องจักรและ Dolly, การใช้ใบมีด และการเปลี่ยนใบมีด</p>
-          <ul>
-            <li>ใช้ Employee ID และ PIN</li>
-            <li>เพิ่มข้อมูลใหม่เท่านั้น</li>
-            <li>ไม่สามารถเปิดหรือแก้ไขข้อมูลเดิม</li>
-          </ul>
-          <button class="primary" type="button" data-open="operator-dialog">เข้าสู่หน้า Operator</button>
-        </article>
-
-        <article class="mode-card management">
-          <div class="mode-number">02</div>
-          <div class="icon" aria-hidden="true">▦</div>
-          <p class="label">DATA CENTER</p>
-          <h2>Viewer / Admin</h2>
-          <p>ดูข้อมูลการผลิต กรอง Export CSV และสร้าง Revision ใหม่ตามสิทธิ์ที่ได้รับ</p>
-          <ul>
-            <li>เข้าสู่ระบบด้วย Microsoft 365</li>
-            <li>เริ่มโหลดข้อมูลหลังจากกดกรอง</li>
-            <li>บันทึกประวัติการแก้ไขทุก Revision</li>
-          </ul>
-          <button class="secondary" type="button" id="microsoft-login">เข้าสู่ระบบ Microsoft 365</button>
-        </article>
-      </section>
-
-      <section class="rules">
-        <div><strong>CREATE ONLY</strong><span>Operator เพิ่มข้อมูลใหม่</span></div>
-        <div><strong>REVISION CONTROL</strong><span>ไม่เขียนทับข้อมูลเดิม</span></div>
-        <div><strong>SHAREPOINT</strong><span>ฐานข้อมูลส่วนกลาง</span></div>
-      </section>
-      </section>
-
-      <section id="operator-view" class="operator-workspace" hidden>
-        <div class="workspace-head">
-          <div><p class="eyebrow">OPERATOR · NEW RECORD ONLY</p><h1>บันทึกงาน Slitter</h1></div>
-          <div class="operator-meta"><strong id="operator-name">Operator</strong><span>ทีม <b id="operator-team">A</b></span><button type="button" id="operator-exit">ออกจากหน้านี้</button></div>
+      <section id="home-view" class="view active">
+        <div class="hero">
+          <span class="pill">TH3 · TH4</span>
+          <h1>บันทึกงาน Slitter<br><em>ง่าย ครบ และตรวจสอบได้</em></h1>
+          <p>เลือกโหมดการใช้งานเพื่อเริ่มบันทึกหรือตรวจสอบข้อมูลการผลิต</p>
         </div>
-
-        <div class="step-tabs" role="tablist" aria-label="ขั้นตอนบันทึก">
-          <button class="step-tab active" data-step="inspection" type="button"><b>1</b> ตรวจสอบก่อนเริ่ม</button>
-          <button class="step-tab locked" data-step="condition" type="button" disabled><b>2</b> Condition</button>
-          <button class="step-tab locked" data-step="knife" type="button" disabled><b>3</b> ใบมีด</button>
-          <button class="step-tab locked" data-step="replacement" type="button" disabled><b>4</b> เปลี่ยนใบมีด</button>
+        <div class="login-grid">
+          <article class="login-card operator-card">
+            <div class="card-icon">✦</div><span class="card-kicker">SHOP FLOOR</span>
+            <h2>Operator</h2><p>บันทึกข้อมูลใหม่ด้วย Employee ID และ PIN</p>
+            <ul><li>ตรวจสอบก่อนเริ่มงาน</li><li>บันทึก Slit Condition และใบมีด</li><li>ยืนยัน M365 เมื่อส่ง Database</li></ul>
+            <button class="primary" type="button" data-open="operator-dialog">เข้าสู่หน้า Operator</button>
+          </article>
+          <article class="login-card management-card">
+            <div class="card-icon">▦</div><span class="card-kicker">DATA CENTER</span>
+            <h2>Viewer / Admin</h2><p>ดู กรอง Export และจัดการระบบตามสิทธิ์</p>
+            <ul><li>ใช้บัญชี Microsoft 365 บริษัท</li><li>ดึงข้อมูลเมื่อกดกรองเท่านั้น</li><li>จัดการผู้ใช้และ Parameter</li></ul>
+            <button class="secondary" type="button" id="microsoft-login">เข้าสู่ระบบ Microsoft 365</button>
+          </article>
         </div>
+      </section>
+
+      <section id="operator-view" class="view">
+        <div class="page-head"><div><span class="pill">OPERATOR</span><h1>บันทึกงาน Slitter</h1></div><div class="user-chip"><span id="operator-name">Operator</span><b id="operator-team">ทีม A</b></div></div>
+        <nav class="steps" aria-label="ขั้นตอนบันทึก">
+          <button class="step active" data-step="setup" type="button"><b>1</b><span>เริ่มงาน</span></button>
+          <button class="step" data-step="inspection" type="button" disabled><b>2</b><span>ตรวจสอบ</span></button>
+          <button class="step" data-step="condition" type="button" disabled><b>3</b><span>Condition</span></button>
+          <button class="step" data-step="confirm" type="button" disabled><b>4</b><span>ยืนยัน</span></button>
+          <button class="step" data-step="success" type="button" disabled><b>5</b><span>สำเร็จ</span></button>
+        </nav>
 
         <form id="record-form" novalidate>
-          <section class="step-panel active" data-panel="inspection">
-            <div class="panel-title"><div><p class="label">MANDATORY CHECK</p><h2>ตรวจสอบเครื่องจักรและ Dolly</h2></div><span class="required-badge">ต้องผ่านก่อนบันทึกงาน</span></div>
-            <div class="record-grid compact">
+          <section class="step-panel active" data-panel="setup">
+            <div class="panel-head"><div><span class="section-no">01</span><h2>ข้อมูลงาน</h2><p>เลือกรายการก่อนเริ่มตรวจสอบ</p></div><span class="required">จำเป็น</span></div>
+            <div class="type-picker">
+              <label class="type-option selected"><input type="radio" name="recordType" value="Slitter" checked><span>✦</span><b>Slitter Record</b><small>บันทึกงาน Slitter</small></label>
+              <label class="type-option"><input type="radio" name="recordType" value="AutoPack"><span>▣</span><b>Auto Pack Record</b><small>บันทึกงาน Auto Packing</small></label>
+            </div>
+            <div class="form-grid five">
+              <label>วันที่<input type="date" name="recordDate" required></label>
               <label>Area<select name="area" required><option>TH3</option><option>TH4</option></select></label>
               <label>Machine<select name="machine" required><option>3A</option><option>3B</option></select></label>
-              <label>วันที่<input type="date" name="recordDate" required></label>
-              <label>กะ<select name="shift" required><option value="">เลือกกะ</option><option>Day</option><option>Night</option></select></label>
               <label>ทีม<select name="team" required><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+              <label>กะ<select name="shift" required><option value="">เลือกกะ</option><option>Day</option><option>Night</option></select></label>
             </div>
-            <h3>Machine pre-start inspection</h3>
-            <div class="check-grid" id="machine-checks">
-              <label><input type="checkbox"> Air supply – Top knife</label>
-              <label><input type="checkbox"> Dust suction hose</label>
-              <label><input type="checkbox"> Knife holder (Thick/Thin)</label>
-              <label><input type="checkbox"> Unwinder belt</label>
-              <label><input type="checkbox"> Unload table cart</label>
-              <label><input type="checkbox"> Dust collector</label>
-              <label><input type="checkbox"> Core handling</label>
-              <label><input type="checkbox"> Shaft transport</label>
-              <label><input type="checkbox"> Hydraulic oil</label>
-              <label><input type="checkbox"> Pallet integrity</label>
-            </div>
-            <h3>Dolly / Paper Core Cutter</h3>
-            <div class="record-grid compact dolly-grid">
-              <label class="check-field"><input type="checkbox" id="dolly-clean"> ความสะอาดผ่าน</label>
-              <label class="check-field"><input type="checkbox" id="dolly-wear"> ความสึกผ่าน</label>
-              <label class="check-field"><input type="checkbox" id="dolly-size"> ขนาดถูกต้อง</label>
-              <label>จำนวนครั้งตัด<input type="number" id="dolly-cuts" required step="1" min="0" max="399" placeholder="ต้องน้อยกว่า 400"></label>
-            </div>
+            <div class="doc-preview"><span>Document No.</span><strong id="doc-number">เลือกวันที่และกะ</strong></div>
+            <div class="panel-actions"><span></span><button class="primary auto-width" id="start-inspection" type="button">ถัดไป: ตรวจสอบก่อนเริ่มงาน</button></div>
+          </section>
+
+          <section class="step-panel" data-panel="inspection">
+            <div class="panel-head"><div><span class="section-no">02</span><h2>Pre-start Inspection</h2><p>ต้องผ่านครบทุกข้อก่อนบันทึก Condition</p></div><span class="required">บังคับตรวจ</span></div>
+            <div class="inspection-section"><h3>Machine</h3><div class="check-grid" id="machine-checks">
+              <label><input type="checkbox"><span>ท่อลม Top knife</span></label><label><input type="checkbox"><span>ท่อดูดฝุ่นใบมีด</span></label>
+              <label><input type="checkbox"><span>การจัดเรียงใบมีด หนา/บาง</span></label><label><input type="checkbox"><span>สายพาน Unwinder</span></label>
+              <label><input type="checkbox"><span>รถโต๊ะ Unload</span></label><label><input type="checkbox"><span>เครื่องดูดฝุ่น</span></label>
+              <label><input type="checkbox"><span>ชุดจับแกน</span></label><label><input type="checkbox"><span>ชุดขนย้าย Shaft</span></label>
+              <label><input type="checkbox"><span>น้ำมัน Hydraulic</span></label><label><input type="checkbox"><span>อุปกรณ์ป้องกันและพื้นที่ทำงาน</span></label>
+            </div></div>
+            <div class="inspection-section"><h3>Dolly / Paper Core Cutter</h3><div class="check-grid dolly-grid">
+              <label><input type="checkbox" id="dolly-clean"><span>ความสะอาด</span></label><label><input type="checkbox" id="dolly-wear"><span>ความสึก</span></label>
+              <label><input type="checkbox" id="dolly-size"><span>ขนาดถูกต้อง</span></label><label class="number-check"><span>จำนวนครั้งตัด</span><input type="number" id="dolly-cuts" required min="0" max="399" step="1" placeholder="น้อยกว่า 400"></label>
+            </div></div>
             <label>หมายเหตุ<textarea name="inspectionRemark" rows="3" placeholder="ระบุเมื่อพบความผิดปกติ"></textarea></label>
-            <button class="primary action-button" type="button" id="complete-inspection">ยืนยันการตรวจสอบและเริ่มบันทึก</button>
+            <div class="panel-actions"><button class="ghost back-step" data-back="setup" type="button">ย้อนกลับ</button><button class="primary auto-width" id="complete-inspection" type="button">ยืนยันการตรวจสอบ</button></div>
           </section>
 
           <section class="step-panel" data-panel="condition">
-            <div class="panel-title"><div><p class="label">SLITTER CONDITION</p><h2>ข้อมูล Jumbo และ Condition</h2></div><span class="status-pass">Inspection ผ่านแล้ว</span></div>
-            <div class="record-grid">
-              <label>Product Code<input name="productCode" required></label>
-              <label>Jumbo No.<input name="jumboNo" required></label>
-              <label>Slit No.<input name="slitNo" required></label>
-              <label>Width on Jumbo (mm)<input type="number" name="width"></label>
-              <label>Speed (m/min)<input type="number" name="speed"></label>
-              <label>Ramp Up / Down<input name="ramp"></label>
-              <label>Winder Tension<input type="number" name="tension"></label>
-              <label>Rider Roll Pressure<input type="number" name="pressure"></label>
-              <label>Torque<input type="number" name="torque"></label>
-              <label>Roll Length (m)<input type="number" name="rollLength"></label>
-              <label>Roll Diameter (mm)<input type="number" name="rollDiameter"></label>
-              <label>ตรวจสอบหน้าตัดม้วน<select name="crossSection" required><option value="">เลือกผลตรวจ</option><option value="Normal">ปกติ</option><option value="Abnormal">ผิดปกติ</option></select></label>
+            <div class="panel-head"><div><span class="section-no">03</span><h2>Slit Condition</h2><p>บันทึกได้สูงสุด 6 Conditions</p></div><span class="success-badge">Inspection ผ่านแล้ว</span></div>
+            <div id="condition-cards" class="condition-cards"></div>
+            <div id="condition-editor" class="editor-card">
+              <div class="editor-title"><div><span id="condition-label">CONDITION 1</span><h3>ข้อมูลการตั้งค่า</h3></div><button class="danger-link" id="cancel-condition" type="button" hidden>ยกเลิกแก้ไข</button></div>
+              <div class="form-grid three">
+                <label>Product Code<input name="productCode" autocomplete="off" required></label><label>Jumbo No.<input name="jumboNo" required></label><label>Slit No.<input name="slitNo" required></label>
+                <label>Width on Jumbo (mm)<input type="number" name="width"></label><label>Speed (m/min)<input type="number" name="speed"></label><label>Ramp Up / Down<input name="ramp"></label>
+                <label>Winder Tension<input type="number" name="tension"></label><label>Rider Roll Pressure<input type="number" name="pressure"></label><label>Torque<input type="number" name="torque"></label>
+                <label>Roll Length (m)<input type="number" name="rollLength"></label><label>Roll Diameter (mm)<input type="number" name="rollDiameter"></label>
+                <label>ตรวจสอบหน้าตัดม้วน<select name="crossSection" required><option value="">เลือกผลตรวจ</option><option value="Normal">ปกติ</option><option value="Abnormal">ผิดปกติ</option></select></label>
+              </div>
+              <div class="knife-head"><div><h3>ใบมีดที่ใช้งาน <span>*</span></h3><p>เลือกหมายเลข 01–50</p></div><div class="inline-actions"><select id="copy-condition"><option value="">คัดลอกจาก Condition</option></select><button class="ghost small" id="select-all-knives" type="button">เลือกทั้งหมด</button><button class="ghost small" id="clear-knives" type="button">ล้าง</button></div></div>
+              <div class="knife-grid" id="knife-grid"></div>
+              <div class="replacement-head"><div><h3>การเปลี่ยนใบมีด</h3><p>ไม่บังคับกรอก</p></div><button class="ghost small" type="button" id="add-replacement">+ เพิ่มรายการ</button></div>
+              <div id="replacement-list"><p class="empty-row">ไม่มีการเปลี่ยนใบมีดใน Condition นี้</p></div>
+              <button class="secondary auto-width save-condition" id="save-condition" type="button">บันทึก Condition</button>
             </div>
-            <button class="secondary action-button next-step" data-next="knife" type="button">ถัดไป: เลือกใบมีด</button>
+            <button class="add-card" id="add-condition" type="button" hidden>＋ เพิ่ม Condition</button>
+            <div class="panel-actions"><button class="ghost back-step" data-back="inspection" type="button">ย้อนกลับ</button><button class="primary auto-width" id="review-record" type="button" disabled>ตรวจสอบข้อมูล</button></div>
           </section>
 
-          <section class="step-panel" data-panel="knife">
-            <div class="panel-title"><div><p class="label">WIDTH CHANGE</p><h2>เลือกใบมีดที่ใช้งาน</h2></div><button class="mini-button" type="button" id="copy-knives">คัดลอกจาก Jumbo ก่อนหน้า</button></div>
-            <div class="knife-grid" id="knife-grid"></div>
-            <button class="secondary action-button next-step" data-next="replacement" type="button">ถัดไป: การเปลี่ยนใบมีด</button>
+          <section class="step-panel" data-panel="confirm">
+            <div class="panel-head"><div><span class="section-no">04</span><h2>ตรวจสอบก่อนบันทึก</h2><p>ตรวจข้อมูลให้ถูกต้องก่อนส่งเข้า Database</p></div><span class="required">พร้อมบันทึก</span></div>
+            <div id="confirm-summary" class="summary-grid"></div>
+            <div id="confirm-conditions" class="confirm-list"></div>
+            <div class="save-notice"><b>ยืนยันด้วย Microsoft 365</b><span>ระบบจะให้ลงชื่อเข้าใช้เมื่อกดบันทึก</span></div>
+            <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+            <div class="panel-actions"><button class="ghost back-step" data-back="condition" type="button">กลับไปแก้ไข</button><button class="primary auto-width" id="save-record" type="submit">บันทึกเข้า SharePoint</button></div>
           </section>
 
-          <section class="step-panel" data-panel="replacement">
-            <div class="panel-title"><div><p class="label">KNIFE REPLACEMENT</p><h2>บันทึกการเปลี่ยนใบมีด</h2></div><button class="mini-button" type="button" id="add-replacement">+ เพิ่มรายการ</button></div>
-            <div id="replacement-list" class="replacement-list"><p class="empty-row">ไม่มีการเปลี่ยนใบมีดในงานนี้</p></div>
-            <label>หมายเหตุงาน<textarea name="jobRemark" rows="3"></textarea></label>
-            <button class="primary action-button" type="submit" id="save-record">บันทึกเข้า SharePoint ด้วย M365</button>
-            <p id="save-status" role="status" aria-live="polite">ต้องใช้บัญชี M365 ที่มีสิทธิ์บันทึกข้อมูล</p>
+          <section class="step-panel success-panel" data-panel="success">
+            <div class="success-mark">✓</div><span class="pill">บันทึกสำเร็จ</span><h2>ข้อมูลถูกส่งเข้า Database แล้ว</h2><p id="success-message"></p>
+            <button class="primary auto-width" id="new-record" type="button">สร้างเอกสารใหม่</button>
           </section>
         </form>
       </section>
-    </main>
 
-    <footer>SlitterFlow Control · Production Record System</footer>
+      <section id="management-view" class="view">
+        <div class="page-head"><div><span class="pill">DATA CENTER</span><h1>ข้อมูลการผลิต</h1></div><button class="admin-trigger" id="admin-trigger" type="button">Admin</button></div>
+        <div class="filter-card"><div class="form-grid four"><label>วันที่<input type="date" id="filter-date"></label><label>Product Code<input id="filter-product"></label><label>Area<select id="filter-area"><option value="">ทั้งหมด</option><option>TH3</option><option>TH4</option></select></label><label>Machine<select id="filter-machine"><option value="">ทั้งหมด</option><option>3A</option><option>3B</option><option>4A</option><option>4B</option></select></label></div><div class="filter-actions"><button class="ghost" id="clear-filter" type="button">ล้างตัวกรอง</button><button class="primary auto-width" id="apply-filter" type="button">กรองข้อมูล</button><button class="secondary auto-width" id="export-csv" type="button" disabled>Export CSV</button></div></div>
+        <div class="data-card"><div class="data-tabs"><button class="active">Slit Condition</button><button>Knife Usage</button><button>Knife Replacement</button></div><div class="empty-data" id="data-state"><b>ยังไม่ดึงข้อมูล</b><span>กำหนดตัวกรองแล้วกด “กรองข้อมูล”</span></div></div>
+        <aside id="admin-panel" class="admin-panel" hidden><div><span class="pill">ADMIN</span><h2>จัดการระบบ</h2></div><button class="admin-menu">ผู้ใช้งานและสิทธิ์</button><button class="admin-menu">Parameter Master</button><button class="admin-menu">ทีมและรหัสผ่าน</button></aside>
+      </section>
+    </main>
   </div>
 
-  <dialog id="operator-dialog">
-    <form method="dialog" class="login-panel">
-      <div class="dialog-head">
-        <div><p class="label">OPERATOR ACCESS</p><h2>เข้าสู่ระบบหน้างาน</h2></div>
-        <button class="close" value="cancel" aria-label="ปิด">×</button>
-      </div>
-      <label>Employee ID<input name="employeeId" inputmode="numeric" autocomplete="username" placeholder="กรอกรหัสพนักงาน" required></label>
-      <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••" required></label>
-      <p class="notice">PIN ยังเป็นโหมดทดสอบและไม่ได้ยืนยันตัวตน การบันทึกต้องใช้ M365 และตั้งค่า SharePoint ให้ครบก่อน</p>
-      <button class="primary" type="button" id="operator-login">เข้าสู่ระบบ</button>
-    </form>
-  </dialog>
-
+  <dialog id="operator-dialog"><form method="dialog" class="login-panel"><div class="dialog-head"><div><span class="pill">OPERATOR ACCESS</span><h2>เข้าสู่ระบบหน้างาน</h2></div><button class="close" value="cancel" aria-label="ปิด">×</button></div><label>Employee ID<input name="employeeId" inputmode="numeric" autocomplete="username" required placeholder="กรอกรหัสพนักงาน"></label><label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" required placeholder="••••"></label><p class="notice">PIN อยู่ระหว่างเชื่อมการตรวจสอบกับ Users List การบันทึกต้องยืนยันด้วย M365</p><button class="primary" type="button" id="operator-login">เข้าสู่ระบบ</button></form></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js" crossorigin="anonymous"></script>
-  <script src="sharepoint-config.js?v=6"></script>
-  <script src="sharepoint.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="sharepoint-config.js?v=8"></script><script src="sharepoint.js?v=8"></script><script src="app.js?v=8"></script>
 </body>
 </html>

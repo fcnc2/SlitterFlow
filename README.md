@@ -11,7 +11,7 @@ GitHub Pages: `https://fcnc2.github.io/SlitterFlow/`
 ## M365 save integration
 
 Operator opens the existing form with Employee ID + PIN, fills it, then presses Save.
-PIN remains an explicitly labelled prototype: it is **not verified** and is not sent to Graph or stored.
+The published interface uses the restored blue-white five-step Operator flow. PIN remains an explicitly labelled prototype: it is **not verified** and is not sent to Graph or stored.
 Employee ID is self-reported; the authenticated M365 account is recorded by SharePoint's Created By.
 A real PIN verification service is still required before treating PIN as authentication.
 
@@ -40,7 +40,7 @@ Map these payload keys under each list's `fields` object (all keys are required 
 
 Blank optional values are omitted. Dates use ISO format and KnifeNo is sent as a number.
 `ProductionRecords.IsLatest` starts false and changes to true only after all related writes succeed.
-Production readers must use rows where IsLatest is true. This prototype contains one condition per submission.
+Production readers must use rows where IsLatest is true. Each document supports up to six conditions per submission.
 
 ### Failure handling and verification
 

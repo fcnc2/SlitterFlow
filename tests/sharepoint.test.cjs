@@ -20,14 +20,14 @@ function setup(failAt) {
   vm.runInNewContext(fs.readFileSync('sharepoint.js','utf8'), context);
   return {context,calls,state,logins:()=>logins};
 }
-const groups = [{list:'ProductionRecords',rows:[{docNo:'20260910D-3A',isLatest:false}]},{list:'KnifeSelectionRecords',rows:[{docNo:'20260910D-3A',knifeNo:1}]}];
+const groups = [{list:'ProductionRecords',rows:[{docNo:'20260910D-3A',isLatest:false},{docNo:'20260910D-3A',isLatest:false}]},{list:'KnifeSelectionRecords',rows:[{docNo:'20260910D-3A',knifeNo:1}]}];
 test('missing config blocks before login or network', async()=> {
  const s=setup(); s.context.SLITTER_SHAREPOINT.siteId='';
  await assert.rejects(s.context.SlitterSharePoint.save(groups)); assert.equal(s.calls.length,0); assert.equal(s.logins(),0);
 });
 test('all lists saved before Complete; token reused',async()=>{
  const s=setup(); const result=await s.context.SlitterSharePoint.save(groups);
- assert.equal(result.count,2); assert.equal(s.calls.at(-1).options.method,'PATCH');
+ assert.equal(result.count,3); assert.equal(s.calls.filter(call=>call.options.method==='PATCH').length,2);
  assert.equal(JSON.parse(s.calls.at(-1).options.body).IsLatest,true);
  assert.equal(s.state.size,0); await s.context.SlitterSharePoint.token(); assert.equal(s.logins(),1);
 });
