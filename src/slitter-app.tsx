@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { demoParameters, filterDemoRecords, saveDemoRecord, writeDemoParameters, type DemoParameter, type DemoRecord } from "./demo-store";
+import { demoParameters, demoSubmissions, filterDemoRecords, reviewDemoSubmission, saveDemoRecord, writeDemoParameters, type DemoParameter, type DemoRecord } from "./demo-store";
+import { managerNames, trialUsers, writeTrialUsers, type TrialRole, type TrialUser } from "./demo-users";
 const machineChecks = [
     "Air supply — Top Knife",
     "ท่อดูดฝุ่นใบมีด",
@@ -18,7 +19,7 @@ const machineChecks = [
     "ขนาด Paper Core ถูกต้อง",
     "จำนวนครั้งตัดน้อยกว่า 400 ครั้ง",
   ];
-type AppRole = "operator" | "viewer" | "admin";
+type AppRole = TrialRole;
 const conditionFields = [
   ["productCode", "Product Code"],
   ["jumboNo", "Jumbo No."],
@@ -92,6 +93,7 @@ export default function SlitterApp() {
     [area, setArea] = useState(""),
     [machine, setMachine] = useState(""),
     [crew, setCrew] = useState(""),
+    [currentUser, setCurrentUser] = useState<TrialUser | null>(null),
     [period, setPeriod] = useState(""),
     [checks, setChecks] = useState<Record<string, Result>>({}),
     [condition, setCondition] = useState<Condition>(blankCondition()),
@@ -192,19 +194,19 @@ export default function SlitterApp() {
       return;
     }
     const username = login.user.trim().toLowerCase();
-    const trialPasswords: Record<AppRole, string> = {
-      operator: "operator123", viewer: "viewer123", admin: "admin123",
-    };
-    if (!(username in trialPasswords) || trialPasswords[username as AppRole] !== login.pass) {
+    const account = trialUsers().find(user => user.username === username && user.active && user.password === login.pass);
+    if (!account) {
       setLoginError("Username หรือ Password สำหรับทดลองไม่ถูกต้อง");
       return;
     }
-    setRole(username as AppRole);
+    setCurrentUser(account);
+    setRole(account.role);
     setLogin({ user: username, pass: "" });
     setAdminView("data");
   }
   function signOut() {
     setRole(null);
+    setCurrentUser(null);
     setAdminView("data");
   }
   function reset() {
@@ -234,7 +236,18 @@ export default function SlitterApp() {
     setLoadingRecord(true);
     setLoadError("");
     try {
-      throw new Error("ฟังก์ชันโหลดเอกสารเดิมจะเปิดใช้ในขั้นตอน Revision");
+      const entry = demoSubmissions().find(item => item.documentNo === query);
+      if (!entry) throw new Error("ไม่พบเลขที่เอกสารในเบราว์เซอร์นี้");
+      if (entry.operator !== operator) throw new Error("เฉพาะผู้บันทึกเดิมเท่านั้นที่แก้ไขเอกสารนี้ได้");
+      if (entry.status !== "returned") throw new Error("แก้ไขได้เมื่อ Shift Manager ส่งกลับเท่านั้น");
+      setArea(entry.area);
+      setMachine(entry.machine);
+      setCrew(entry.managerName);
+      setPeriod(entry.period);
+      setChecks(entry.checks);
+      setSaved(entry.conditions as Condition[]);
+      setLoadedDocumentNo(entry.documentNo);
+      setStep("condition");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "โหลดเอกสารไม่สำเร็จ");
     } finally {
@@ -325,7 +338,8 @@ export default function SlitterApp() {
   async function submit() {
     setSaving(true);
     try {
-      const id = saveDemoRecord({ documentNo, area, machine, operator, conditions: saved });
+      const id = saveDemoRecord({ documentNo, area, machine, operator, managerName: crew, period,
+        checks, conditions: saved });
       setRecordId(id);
       setStep("success");
     } catch (e) {
@@ -373,6 +387,11 @@ export default function SlitterApp() {
         </main>
       </>
     );
+  if (role === "manager")
+    return <><Header role={role} logout={signOut} /><main className="container">
+      <div className="rolebar"><div><b>Shift Manager Workspace</b><small>User: {currentUser?.name}</small></div><span>MANAGER</span></div>
+      <ManagerReview reviewer={currentUser?.name || operator} allowedAreas={currentUser?.areas || []} canReview={!!currentUser?.permissions.review} />
+    </main></>;
   return (
     <>
       <Header role={role} logout={signOut} />
@@ -443,11 +462,11 @@ export default function SlitterApp() {
                 <input value={operator} readOnly />
               </label>
               <label>
-                กะทีม
+                Shift Manager ที่รับผิดชอบ
                 <select value={crew} onChange={(e) => setCrew(e.target.value)}>
-                  <option value="">เลือก A–D</option>
-                  {["A", "B", "C", "D"].map((x) => (
-                    <option key={x}>{x}</option>
+                  <option value="">เลือกชื่อ Shift Manager</option>
+                  {managerNames().map((x) => (
+                    <option key={x} value={x}>{x}</option>
                   ))}
                 </select>
               </label>
@@ -496,7 +515,7 @@ export default function SlitterApp() {
             <div className="unit">
               <b>{machine}</b>
               <span>
-                {area} · กะ {crew} · {period}
+                {area} · Shift Manager {crew} · {period}
                 <small>{documentNo}</small>
               </span>
             </div>
@@ -963,7 +982,7 @@ export default function SlitterApp() {
                 value={`${area} / ${machine}`}
               />
               <Summary label="ผู้ปฏิบัติงาน" value={operator} />
-              <Summary label="กะ" value={`${crew} · ${period}`} />
+              <Summary label="Shift Manager / กะ" value={`${crew} · ${period}`} />
               <Summary
                 label="ผลผ่าน"
                 value={`${checkedCount - failCount} รายการ`}
@@ -974,7 +993,7 @@ export default function SlitterApp() {
                 good={failCount === 0}
               />
               <Summary label="Condition" value={`${saved.length} รายการ`} />
-              <Summary label="สถานะ" value="พร้อมบันทึก" good />
+              <Summary label="สถานะ" value="พร้อมส่งตรวจสอบ" good />
             </div>
             <div className="condition-review">
               {saved.map((x) => (
@@ -996,7 +1015,7 @@ export default function SlitterApp() {
                 ← กลับไปแก้ไข
               </button>
               <button className="primary" disabled={saving} onClick={submit}>
-                {saving ? "กำลังบันทึก..." : "บันทึกสำหรับทดลอง ✓"}
+                {saving ? "กำลังส่ง..." : "ส่งให้ Shift Manager ตรวจสอบ ✓"}
               </button>
             </div>
           </section>
@@ -1005,9 +1024,9 @@ export default function SlitterApp() {
           <section className="card success">
             <div>✓</div>
             <p className="kicker">05 · COMPLETE</p>
-            <h2>บันทึกข้อมูลสำเร็จ</h2>
+            <h2>ส่งบันทึกสำเร็จ · รอตรวจสอบ</h2>
             <p>
-              เอกสาร <b>{documentNo}</b> บันทึกไว้ในเบราว์เซอร์เครื่องนี้แล้ว
+              เอกสาร <b>{documentNo}</b> รอ Shift Manager ตรวจสอบในเบราว์เซอร์เครื่องนี้
             </p>
             <small>Trial ID: {recordId}</small>
             <button className="primary" onClick={reset}>
@@ -1064,7 +1083,7 @@ function Login({
         <button className="primary">เข้าสู่ระบบ →</button>
         <aside>
           <b>บัญชีทดลอง</b>
-          <span>operator / operator123 · viewer / viewer123 · admin / admin123</span>
+          <span>operator / operator123 · manager / manager123 · viewer / viewer123 · admin / admin123</span>
         </aside>
       </form>
     </main>
@@ -1145,65 +1164,58 @@ function Header({
     </header>
   );
 }
-type AdminUser = {
-  id: number;
-  username: string;
-  name: string;
-  role: "operator" | "viewer" | "admin";
-  active: boolean;
-  permissions: {
-    slitter3: boolean;
-    slitter4: boolean;
-    autoPack: boolean;
-    loadRecord: boolean;
-  };
-  teams: string[];
-  areas: string[];
-};
+function ManagerReview({ reviewer, allowedAreas, canReview }: { reviewer: string; allowedAreas: string[]; canReview: boolean }) {
+  const [items, setItems] = useState(demoSubmissions);
+  const [selected, setSelected] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+  const pending = items.filter(item => item.status === "pending" && allowedAreas.includes(item.area));
+  const entry = pending.find(item => item.documentNo === selected);
+  function decide(decision: "approved" | "returned") {
+    if (!entry || !canReview) return;
+    try {
+      reviewDemoSubmission(entry.documentNo, reviewer, decision, note);
+      setItems(demoSubmissions()); setSelected(""); setNote(""); setError("");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "ตรวจสอบไม่สำเร็จ"); }
+  }
+  return <section className="card manager-review">
+    <p className="kicker">SHIFT MANAGER · REVIEW</p>
+    <h2>รายการรอตรวจสอบ ({pending.length})</h2>
+    <p className="muted">แสดงทุกเอกสารที่ยังไม่ตรวจสอบในพื้นที่ที่ได้รับสิทธิ์ เลือกเอกสารเพื่อดูข้อมูลก่อนตัดสินใจ</p>
+    <button className="secondary" onClick={() => { setItems(demoSubmissions()); setSelected(""); }}>↻ อัปเดตรายการ</button>
+    {!canReview && <p className="error">บัญชีนี้ยังไม่ได้รับสิทธิ์ตรวจสอบ</p>}
+    {pending.length === 0 && <p className="muted">ยังไม่มีเอกสารรอตรวจสอบในเบราว์เซอร์นี้</p>}
+    <div className="manager-list">{pending.map(item => <button key={item.documentNo} className={selected === item.documentNo ? "selected" : ""} onClick={() => { setSelected(item.documentNo); setNote(""); setError(""); }}>
+      <b>{item.documentNo}</b><span>{item.area} / {item.machine} · Operator {item.operator} · {item.conditions.length} Condition</span><small>ระบุผู้รับผิดชอบ: {item.managerName} · รอตรวจสอบ</small>
+    </button>)}</div>
+    {entry && <div className="manager-detail">
+      <h3>ตรวจเอกสาร {entry.documentNo}</h3>
+      <p>{entry.area} / {entry.machine} · {entry.period} · Operator {entry.operator} · ส่งเมื่อ {new Date(entry.submittedAt).toLocaleString("th-TH")}</p>
+      <p>Pre-start check: ผ่าน {Object.values(entry.checks).filter(x => x === "pass").length} · ไม่ผ่าน {Object.values(entry.checks).filter(x => x === "fail").length}</p>
+      {Object.entries(entry.checks).map(([name, result]) => <div className="review-line" key={name}><span>{name}</span><b>{result === "pass" ? "ผ่าน" : "ไม่ผ่าน"}</b></div>)}
+      {entry.conditions.map((condition, index) => <div className="review-condition" key={index}>
+        <h3>Condition {index + 1} · {condition.productCode} · Jumbo {condition.jumboNo}</h3>
+        <div className="manager-fields">{conditionFields.map(([key, label]) => <span key={key}><b>{label}</b> {condition[key] || "—"}</span>)}</div>
+        <p>หน้าตัดม้วน: {condition.crossSection || "—"} · ใบมีด: {condition.knifeNumbers || "—"}</p>
+        <p>การเปลี่ยนใบมีด: {(() => { try { const rows = JSON.parse(condition.replacements || "[]") as Replacement[]; return rows.length ? rows.map(row => `#${row.knifeNo} / ${row.life} ชั่วโมง / ${row.reason}`).join(" · ") : "ไม่มี"; } catch { return "ไม่มี"; } })()}</p>
+      </div>)}
+      <label>หมายเหตุ / เหตุผลที่ส่งกลับ<textarea value={note} onChange={event => setNote(event.target.value)} rows={3} /></label>
+      {error && <p className="error">{error}</p>}
+      <div className="actions"><button className="secondary" disabled={!canReview || !note.trim()} onClick={() => decide("returned")}>ส่งกลับแก้ไข</button><button className="primary" disabled={!canReview} onClick={() => decide("approved")}>ตรวจสอบและอนุมัติ ✓</button></div>
+    </div>}
+  </section>;
+}
+type AdminUser = TrialUser;
 function AdminPanel({ onBack }: { onBack: () => void }) {
   const baseAccess = {
     slitter3: true,
     slitter4: true,
     autoPack: false,
-    loadRecord: true,
+    loadRecord: false,
+    review: false,
   };
-  const [users, setUsers] = useState<AdminUser[]>([
-    {
-      id: 1,
-      username: "operator",
-      name: "Production Operator",
-      role: "operator",
-      active: true,
-      permissions: baseAccess,
-      teams: ["A"],
-      areas: ["TH3", "TH4"],
-    },
-    {
-      id: 2,
-      username: "viewer",
-      name: "Production Viewer",
-      role: "viewer",
-      active: true,
-      permissions: { ...baseAccess, loadRecord: false },
-      teams: [],
-      areas: ["TH3", "TH4"],
-    },
-    {
-      id: 3,
-      username: "admin",
-      name: "System Administrator",
-      role: "admin",
-      active: true,
-      permissions: {
-        slitter3: true,
-        slitter4: true,
-        autoPack: true,
-        loadRecord: true,
-      },
-      teams: [],
-      areas: ["TH3", "TH4"],
-    },
-  ]);
+  const [users, setUsers] = useState<AdminUser[]>(trialUsers);
+  useEffect(() => { writeTrialUsers(users); }, [users]);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [tempPassword, setTempPassword] = useState("");
@@ -1212,7 +1224,6 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
     username: "",
     name: "",
     role: "operator" as AdminUser["role"],
-    team: "A",
   });
   const filtered = users.filter((user) =>
     `${user.username} ${user.name} ${user.role}`
@@ -1221,20 +1232,22 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
   );
   function addUser() {
     if (!newUser.username.trim() || !newUser.name.trim()) return;
+    if (users.some(user => user.username === newUser.username.trim().toLowerCase())) return alert("Username นี้มีแล้ว");
     setUsers((items) => [
       ...items,
       {
         id: Date.now(),
         username: newUser.username.trim().toLowerCase(),
         name: newUser.name.trim(),
+        password: "change-me",
         role: newUser.role,
         active: true,
-        permissions: baseAccess,
-        teams: newUser.role === "operator" ? [newUser.team] : [],
+        permissions: { ...baseAccess, review: newUser.role === "manager" },
+        managerName: "",
         areas: ["TH3", "TH4"],
       },
     ]);
-    setNewUser({ username: "", name: "", role: "operator", team: "A" });
+    setNewUser({ username: "", name: "", role: "operator" });
   }
   const selected = users.find((user) => user.id === selectedId);
   function updateSelected(change: Partial<AdminUser>) {
@@ -1338,11 +1351,8 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                               .value as AdminUser["role"];
                             return {
                               ...x,
-                              role: nextRole,
-                              teams:
-                                nextRole === "operator"
-                                  ? [x.teams[0] || "A"]
-                                  : [],
+              role: nextRole,
+              permissions: { ...x.permissions, review: nextRole === "manager" },
                             };
                           })()
                         : x,
@@ -1351,6 +1361,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                 }
               >
                 <option value="operator">Operator</option>
+                <option value="manager">Shift Manager</option>
                 <option value="viewer">Viewer</option>
                 <option value="admin">Admin</option>
               </select>
@@ -1400,6 +1411,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
               <span>
                 @{selected.username} · {selected.role.toUpperCase()}
               </span>
+              <label>ชื่อที่แสดงในระบบ<input value={selected.name} onChange={event => updateSelected({ name: event.target.value })} /></label>
             </div>
             <span className={`status-pill ${selected.active ? "on" : "off"}`}>
               {selected.active ? "ใช้งานอยู่" : "ระงับแล้ว"}
@@ -1414,6 +1426,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                   ["slitter4", "Slitter Record — TH4"],
                   ["autoPack", "Auto Pack Record"],
                   ["loadRecord", "โหลดเอกสารเพื่อแก้ไข"],
+                  ["review", "ตรวจสอบบันทึกที่รอตรวจ"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -1434,22 +1447,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
               ))}
             </div>
             <div className="permission-block">
-              {selected.role === "operator" && (
-                <>
-                  <h3>ทีมที่รับผิดชอบ (เลือกได้ 1 ทีม)</h3>
-                  <div className="choice-pills">
-                    {["A", "B", "C", "D"].map((team) => (
-                      <button
-                        key={team}
-                        className={selected.teams[0] === team ? "enabled" : ""}
-                        onClick={() => updateSelected({ teams: [team] })}
-                      >
-                        Team {team}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+              {selected.role === "manager" && <p>ชื่อบัญชีนี้จะแสดงให้ Operator เลือกเป็น Shift Manager ผู้รับผิดชอบ</p>}
               <h3>พื้นที่การผลิต</h3>
               <div className="choice-pills">
                 {["TH3", "TH4"].map((area) => (
@@ -1483,7 +1481,8 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                   className="primary"
                   disabled={!tempPassword.trim()}
                   onClick={() => {
-                    alert("ตั้งรหัสผ่านใหม่แล้ว");
+                    updateSelected({ password: tempPassword.trim() });
+                    alert("ตั้งรหัสผ่านทดลองใหม่แล้ว");
                     setTempPassword("");
                   }}
                 >
@@ -1519,22 +1518,10 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
           }
         >
           <option value="operator">Operator</option>
+          <option value="manager">Shift Manager</option>
           <option value="viewer">Viewer</option>
           <option value="admin">Admin</option>
         </select>
-        {newUser.role === "operator" && (
-          <select
-            value={newUser.team}
-            onChange={(e) => setNewUser({ ...newUser, team: e.target.value })}
-            aria-label="ทีมของ Operator"
-          >
-            {["A", "B", "C", "D"].map((team) => (
-              <option key={team} value={team}>
-                Team {team}
-              </option>
-            ))}
-          </select>
-        )}
         <button className="primary" onClick={addUser}>
           + เพิ่มผู้ใช้
         </button>
@@ -1673,7 +1660,12 @@ function AdminDataCenter() {
     "Roll Diameter",
     "หน้าตัดม้วน",
     "ผู้ปฏิบัติงาน",
+    "Shift Manager",
+    "สถานะตรวจสอบ",
+    "ผู้ตรวจสอบ",
+    "เหตุผลส่งกลับ",
   ];
+  const submissionsByDocument = new Map(demoSubmissions().map(item => [item.documentNo, item]));
   const conditionRows = records.map((record) => [
     formatRecordDate(record.date),
     record.documentNo,
@@ -1692,6 +1684,10 @@ function AdminDataCenter() {
     record.rollDiameter,
     record.crossSection,
     record.operator,
+    submissionsByDocument.get(record.documentNo)?.managerName || "—",
+    ({ pending: "รอตรวจสอบ", approved: "อนุมัติ", returned: "ส่งกลับแก้ไข" } as const)[submissionsByDocument.get(record.documentNo)?.status || "pending"],
+    submissionsByDocument.get(record.documentNo)?.reviewedBy || "—",
+    submissionsByDocument.get(record.documentNo)?.reviewNote || "—",
   ]);
   const knifeHeaders = [
     "วันที่",
