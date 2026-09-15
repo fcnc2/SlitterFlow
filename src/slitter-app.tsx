@@ -1053,13 +1053,14 @@ function Login({
     <main className="login">
       <section className="login-side">
         <div className="logo">SF</div>
-        <p>PRODUCTION RECORD SYSTEM</p>
+        <p>SLITTER RECORD · เวอร์ชันทดลอง</p>
         <h1>
           SlitterFlow
           <br />
           Control
         </h1>
         <span>ระบบบันทึกและควบคุมงาน Slitter</span>
+        <div className="login-trial-note">ข้อมูลทดลองเก็บในเบราว์เซอร์เครื่องนี้ · ยังไม่เชื่อมฐานข้อมูลกลาง</div>
       </section>
       <form className="login-card" onSubmit={submit}>
         <h2>เข้าสู่ระบบ</h2>
@@ -1084,6 +1085,7 @@ function Login({
         <aside>
           <b>บัญชีทดลอง</b>
           <span>operator / operator123 · manager / manager123 · viewer / viewer123 · admin / admin123</span>
+          <span>ทดลองส่งบันทึกและตรวจสอบด้วยเบราว์เซอร์เดียวกัน</span>
         </aside>
       </form>
     </main>
@@ -1104,12 +1106,13 @@ function Header({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
+    <>
     <header>
       <div className="brand">
         <b>SF</b>
         <span>
           <strong>SlitterFlow</strong>
-          <small>CONTROL</small>
+          <small>CONTROL · TRIAL</small>
         </span>
       </div>
       <div className="account">
@@ -1162,6 +1165,8 @@ function Header({
         )}
       </div>
     </header>
+    <div className="trial-banner"><b>เวอร์ชันทดลอง</b><span>ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น · Operator และ Shift Manager ต้องทดลองบนเบราว์เซอร์เดียวกัน</span></div>
+    </>
   );
 }
 function ManagerReview({ reviewer, allowedAreas, canReview }: { reviewer: string; allowedAreas: string[]; canReview: boolean }) {
@@ -1976,7 +1981,7 @@ function RecordMenu({
         <div className="load-icon">↻</div>
         <div className="load-copy">
           <b>โหลดเอกสารเพื่อแก้ไข</b>
-          <span>กรอกเลขที่เอกสาร Slitter Record ที่เคยบันทึกไว้</span>
+          <span>โหลดได้เฉพาะเอกสารที่ Shift Manager ส่งกลับแก้ไข</span>
         </div>
         <div className="load-controls">
           <input

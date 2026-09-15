@@ -2441,3 +2441,7 @@ header {
 .manager-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .7rem; }
 .manager-fields span { display: flex; flex-direction: column; }
 .manager-detail textarea { display: block; width: 100%; margin-top: .5rem; padding: .8rem; border: 1px solid #bed0e2; border-radius: 10px; font: inherit; }
+.trial-banner { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .45rem 1rem; padding: .65rem 1rem; background: #e8f5ff; border-bottom: 1px solid #c3e3fb; color: #164d7b; text-align: center; font-size: 14px; line-height: 1.45; }
+.trial-banner b { padding: .18rem .65rem; background: #0c65ac; color: #fff; border-radius: 100px; white-space: nowrap; }
+.login-trial-note { position: relative; margin-top: 1.6rem; max-width: 28rem; padding: .8rem 1rem; border: 1px solid #9ed3ff70; border-radius: 12px; background: #ffffff12; color: #e4f4ff; font-size: 14px; line-height: 1.5; }
+.login-card aside span { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
